@@ -1,5 +1,5 @@
 #import laspy as lp
-#import numpy as np
+import numpy as np
 import open3d as o3d
 
 input_path = 'C:/Users/Центр БЛА/projects/'
@@ -17,7 +17,8 @@ def pick_points():
     vis.destroy_window()
     return vis.get_picked_points()
 
-
+def intersections_count():
+    
 
 #o3d.visualization.draw_geometries([voxel_grid])
 #octree = o3d.geometry.Octree(max_depth=10)

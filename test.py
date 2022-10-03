@@ -4,19 +4,11 @@ import open3d as o3d
 
 
 def demo_crop_geometry():
-    print("Demo for manual geometry cropping")
-    print(
-        "1) Press 'Y' twice to align geometry with negative direction of y-axis"
-    )
-    print("2) Press 'K' to lock screen and to switch to selection mode")
-    print("3) Drag for rectangle selection,")
-    print("   or use ctrl + left click for polygon selection")
-    print("4) Press 'C' to get a selected geometry and to save it")
-    print("5) Press 'F' to switch to freeview mode")
-    #pcd_data = o3d.data.DemoICPPointClouds()
-    pcd = o3d.io.read_point_cloud("voxel_mai.ply")
+    print("Ппкпкп")
+    pcd = o3d.io.read_point_cloud("monu2.ply")
+    mesh = o3d.io.read_triangle_mesh("monu1.ply")
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, 1)
-    o3d.visualization.draw_geometries_with_editing([voxel_grid])
+    o3d.visualization.draw_geometries_with_editing([pcd])
 
 
 def draw_registration_result(source, target, transformation):

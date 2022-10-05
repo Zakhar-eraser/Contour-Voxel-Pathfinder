@@ -17,11 +17,12 @@ def pick_points(pcd):
 def get_max_bounding_idx(pcd):
     max_bound = pcd.get_max_bound()
     min_bound = pcd.get_min_bound()
-    max_idx = (max_bound - min_bound) / voxel_size
+    max_idx = (max_bound - min_bound) / voxel_size + np.array([1, 1, 1], dtype=np.int32)
     max_idx = max_idx.astype('int32')
+    return max_idx
 
 def get_occupancy_grid(boundary, voxels):
-    grid = np.zeros(boundary[0], boundary[1], boundary[2])
+    grid = np.zeros((boundary[0], boundary[1], boundary[2]), dtype=np.int32)
     for vox in voxels:
         grid[vox.grid_index[0], vox.grid_index[1], vox.grid_index[2]] = 1
     return grid
@@ -84,7 +85,8 @@ def same_point_condition(current_point, target_point):
 def point_in_range_condition(current_point, target_point):
     return max_observe_dist > points_sqr_len(current_point, target_point) * voxel_size
 
-#def find_path_A_star(grid, start, end, stop_condition)
+def draw_route(voxel_grid, route):
+    
 
 def main():
     pcd = o3d.io.read_point_cloud(input_path)

@@ -5,7 +5,6 @@ import A_star_pathfinder
 input_path = 'monu2.ply'
 voxel_size = 1.0
 max_observe_dist = 20.0
-move_cost = np.array([0.0, 0.0, 3.0])
 
 def pick_points(pcd):
     vis = o3d.visualization.VisualizerWithEditing()

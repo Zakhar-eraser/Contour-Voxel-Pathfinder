@@ -1,6 +1,6 @@
 import numpy as np
 import open3d as o3d
-import A_star_pathfinder
+import A_star_pathfinder as asp
 
 input_path = 'monu2.ply'
 voxel_size = 1.0
@@ -17,7 +17,7 @@ def pick_points(pcd):
 def get_max_bounding_idx(pcd):
     max_bound = pcd.get_max_bound()
     min_bound = pcd.get_min_bound()
-    max_idx = (max_bound - min_bound) / voxel_size + np.array([1, 1, 1], dtype=np.int32)
+    max_idx = (max_bound - min_bound) / voxel_size + np.ones(3, dtype=np.int32)
     max_idx = max_idx.astype('int32')
     return max_idx
 
@@ -85,8 +85,17 @@ def same_point_condition(current_point, target_point):
 def point_in_range_condition(current_point, target_point):
     return max_observe_dist > points_sqr_len(current_point, target_point) * voxel_size
 
-def draw_route(voxel_grid, route):
-    
+def draw_route(voxel_grid, route, min_bound):
+    points = route * voxel_size + min_bound
+    lines = np.arange(len(points) - 1)[:, np.newaxis]
+    lines = np.concatenate((lines, lines + 1), axis=1)
+    lines = o3d.geometry.LineSet(points, lines)
+    colors = [[1, 0, 0] for i in range(len(lines))]
+    line_set = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector(points),
+        lines=o3d.utility.Vector2iVector(lines))
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+    o3d.visualization.draw_geometries([voxel_grid, line_set])
 
 def main():
     pcd = o3d.io.read_point_cloud(input_path)
@@ -107,7 +116,7 @@ def main():
     boundary = get_max_bounding_idx(pcd)
     occupancy_grid = get_occupancy_grid(boundary, voxels)
 
-
+    route = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, same_point_condition)
 
 
 if __name__ == '__main__':

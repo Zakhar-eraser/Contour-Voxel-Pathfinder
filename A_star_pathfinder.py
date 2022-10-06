@@ -83,12 +83,12 @@ def find_path_A_star(grid, start, end, stop_condition):
     
     return cost_graph
 
-def get_route(graph, end):
+def get_route_idx(graph, end):
     cur = graph[VoxelNode(end, None, None)]
     route = list()
     while cur.parent != None:
-        route += cur
+        route += cur.idx
         cur = cur.parent
-    route += cur
-    return route
-                    
+    route += cur.idx
+    return np.array(route, dtype=np.int32)
+   

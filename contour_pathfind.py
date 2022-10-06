@@ -32,6 +32,7 @@ def points_sqr_len(p1, p2):
     return dp[0] * dp[0] + dp[1] * dp[1] + dp[2] * dp[2]
 
 def check_intersection(start_voxel, target_voxel, occupancy_grid):
+    tmp = occupancy_grid[target_voxel[0], target_voxel[1], target_voxel[2]]
     occupancy_grid[target_voxel[0], target_voxel[1], target_voxel[2]] = 0
     intersect = 0
     cur_voxel = start_voxel
@@ -76,11 +77,11 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         
         if occupancy_grid[cur_voxel[0], cur_voxel[1], cur_voxel[2]]:
             intersect = 1
-    
+    occupancy_grid[target_voxel[0], target_voxel[1], target_voxel[2]] = tmp
     return intersect
 
 def same_point_condition(current_point, target_point):
-    return np.array_equal(current_point, target_point)
+    return current_point == target_point
 
 def point_in_range_condition(current_point, target_point):
     return max_observe_dist > points_sqr_len(current_point, target_point) * voxel_size
@@ -89,7 +90,6 @@ def draw_route(voxel_grid, route, min_bound):
     points = route * voxel_size + min_bound
     lines = np.arange(len(points) - 1)[:, np.newaxis]
     lines = np.concatenate((lines, lines + 1), axis=1)
-    lines = o3d.geometry.LineSet(points, lines)
     colors = [[1, 0, 0] for i in range(len(lines))]
     line_set = o3d.geometry.LineSet(
         points=o3d.utility.Vector3dVector(points),
@@ -115,8 +115,11 @@ def main():
     voxels = voxel_grid.get_voxels()
     boundary = get_max_bounding_idx(pcd)
     occupancy_grid = get_occupancy_grid(boundary, voxels)
+    occupancy_grid[tuple(target_voxel)] = 0
+    occupancy_grid[tuple(start_voxel)] = 0
 
-    route = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, same_point_condition)
+    graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, same_point_condition)
+    route = asp.get_route_idx(graph, target_voxel)
     draw_route(voxel_grid, route, pcd.get_min_bound())
 
 

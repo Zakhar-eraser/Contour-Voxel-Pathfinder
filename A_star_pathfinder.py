@@ -1,11 +1,10 @@
-from cmath import cosh
 import numpy as np
 from queue import PriorityQueue
 
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
 
-    move_cost = np.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
+    move_cost = np.array([[1, 1, 1], [1, 1, 1]], dtype=np.int32)
 
     def __init__(self, idx, parent, cost):
         self.idx = idx
@@ -13,13 +12,13 @@ class VoxelNode:
         self.cost = cost
     
     def __eq__(self, __o: object) -> bool:
-        return self.idx == __o.idx
-    
-    def __lt__(self, other):
-        return self.cost < other.cost
+        return np.array_equal(self.idx, __o.idx)
     
     def __hash__(self) -> int:
-        return hash((self.idx[0], self.idx[1], self.idx[2]))
+        return hash(tuple(self.idx))
+
+    def __lt__(self, other):
+        return self.cost < other.cost
 
     def get_neigbours(self):
         mc = VoxelNode.move_cost
@@ -57,7 +56,8 @@ class VoxelNode:
 def index_in_bounds(idx, grid):
     bounds = grid.shape
     return ((idx[0] < bounds[0]) and (idx[1] < bounds[1]) and (idx[2] < bounds[2])
-        and not grid[idx[0], idx[1], idx[2]])
+        and not grid[idx[0], idx[1], idx[2]]) and ((idx[0] >= 0) and
+        (idx[1] >= 0) and (idx[2] >= 0))
 
 def manh_dist(p1, p2):
     return abs(p1.idx[0] - p2.idx[0]) + abs(p1.idx[1] - p2.idx[1]) + abs(p1.idx[2] - p2.idx[2])
@@ -66,12 +66,11 @@ def find_path_A_star(grid, start, end, stop_condition):
     frontier = PriorityQueue()
     start_node = VoxelNode(start, None, 0.0)
     end_node = VoxelNode(end, None, None)
-    frontier.put(start_node, 0)
-    cost_graph = {}
-    cost_graph[start_node] = start_node
+    frontier.put((0, start_node))
+    cost_graph = {start_node: start_node}
 
     while not frontier.empty():
-        current = frontier.get()
+        current = frontier.get()[1]
 
         if stop_condition(current, end_node):
             break
@@ -83,7 +82,7 @@ def find_path_A_star(grid, start, end, stop_condition):
                     next.cost = new_cost
                     cost_graph[next] = next
                     priority = new_cost + manh_dist(next, end_node)
-                    frontier.put(next, priority)
+                    frontier.put((priority, next))
     
     return cost_graph
 
@@ -91,8 +90,8 @@ def get_route_idx(graph, end):
     cur = graph[VoxelNode(end, None, None)]
     route = list()
     while cur.parent is not None:
-        route += cur.idx
+        route.append(cur.idx)
         cur = cur.parent
-    route += cur.idx
+    route.append(cur.idx)
     return np.array(route, dtype=np.int32)
    

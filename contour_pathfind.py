@@ -80,7 +80,7 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
     return intersect
 
 def same_point_condition(current_point, target_point):
-    return current_point == target_point
+    return np.array_equal(current_point, target_point)
 
 def point_in_range_condition(current_point, target_point):
     return max_observe_dist > points_sqr_len(current_point, target_point) * voxel_size
@@ -117,6 +117,7 @@ def main():
     occupancy_grid = get_occupancy_grid(boundary, voxels)
 
     route = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, same_point_condition)
+    draw_route(voxel_grid, route, pcd.get_min_bound())
 
 
 if __name__ == '__main__':

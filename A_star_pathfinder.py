@@ -1,18 +1,22 @@
+from cmath import cosh
 import numpy as np
 from queue import PriorityQueue
 
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
 
-    move_cost = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 3.0]])
+    move_cost = np.array([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
 
-    def ___init___(self, idx, parent, cost):
+    def __init__(self, idx, parent, cost):
         self.idx = idx
         self.parent = parent
         self.cost = cost
     
     def __eq__(self, __o: object) -> bool:
         return self.idx == __o.idx
+    
+    def __lt__(self, other):
+        return self.cost < other.cost
     
     def __hash__(self) -> int:
         return hash((self.idx[0], self.idx[1], self.idx[2]))
@@ -51,7 +55,7 @@ class VoxelNode:
             bwd_rgt_dwn, bwd_rgt_up, fwd_lft_dwn, fwd_lft_up, bwd_lft_dwn, bwd_lft_up]
     
 def index_in_bounds(idx, grid):
-    bounds = grid.shape()
+    bounds = grid.shape
     return ((idx[0] < bounds[0]) and (idx[1] < bounds[1]) and (idx[2] < bounds[2])
         and not grid[idx[0], idx[1], idx[2]])
 
@@ -69,15 +73,15 @@ def find_path_A_star(grid, start, end, stop_condition):
     while not frontier.empty():
         current = frontier.get()
 
-        if stop_condition(current, end):
+        if stop_condition(current, end_node):
             break
       
         for next in current.get_neigbours():
-            if index_in_bounds(next, grid):
+            if index_in_bounds(next.idx, grid):
                 new_cost = cost_graph[current].cost + next.cost
-                if next not in cost_graph or new_cost < cost_graph[next]:
+                if (next not in cost_graph) or (new_cost < cost_graph[next].cost):
+                    next.cost = new_cost
                     cost_graph[next] = next
-                    cost_graph[next].cost = new_cost
                     priority = new_cost + manh_dist(next, end_node)
                     frontier.put(next, priority)
     
@@ -86,7 +90,7 @@ def find_path_A_star(grid, start, end, stop_condition):
 def get_route_idx(graph, end):
     cur = graph[VoxelNode(end, None, None)]
     route = list()
-    while cur.parent != None:
+    while cur.parent is not None:
         route += cur.idx
         cur = cur.parent
     route += cur.idx

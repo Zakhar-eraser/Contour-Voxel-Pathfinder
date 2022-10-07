@@ -1,10 +1,9 @@
+from math import dist
 import numpy as np
 from queue import PriorityQueue
 
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
-
-    move_cost = np.array([[1, 1, 1], [1, 1, 1]], dtype=np.int32)
 
     def __init__(self, idx, parent, cost):
         self.idx = idx
@@ -21,33 +20,32 @@ class VoxelNode:
         return self.cost < other.cost
 
     def get_neigbours(self):
-        mc = VoxelNode.move_cost
-        fwd = VoxelNode(self.idx + np.array([1, 0, 0]), self, mc[0, 0])
-        bwd = VoxelNode(self.idx + np.array([-1, 0, 0]), self, mc[1, 0])
-        rgt = VoxelNode(self.idx + np.array([0, 1, 0]), self, mc[0, 1])
-        lft = VoxelNode(self.idx + np.array([0, -1, 0]), self, mc[1, 1])
-        up = VoxelNode(self.idx + np.array([0, 0, 1]), self, mc[0, 2])
-        dwn = VoxelNode(self.idx + np.array([0, 0, -1]), self, mc[1, 2])
-        fwd_up = VoxelNode(self.idx + np.array([1, 0, 1]), self, mc[0, 0] + mc[0, 2])
-        fwd_dwn = VoxelNode(self.idx + np.array([1, 0, -1]), self, mc[0, 0] + mc[1, 2])
-        bwd_up = VoxelNode(self.idx + np.array([-1, 0, 1]), self, mc[1, 0] + mc[0, 2])
-        bwd_dwn = VoxelNode(self.idx + np.array([-1, 0, -1]), self, mc[1, 0] + mc[1, 2])
-        fwd_rgt = VoxelNode(self.idx + np.array([1, 1, 0]), self, mc[0, 0] + mc[0, 1])
-        fwd_lft = VoxelNode(self.idx + np.array([1, -1, 0]), self, mc[0, 0] + mc[1, 1])
-        bwd_rgt = VoxelNode(self.idx + np.array([-1, 1, 0]), self, mc[1, 0] + mc[0, 1])
-        bwd_lft = VoxelNode(self.idx + np.array([-1, -1, 0]), self, mc[1, 0] + mc[1, 1])
-        rgt_up = VoxelNode(self.idx + np.array([0, 1, 1]), self, mc[0, 1] + mc[0, 2])
-        rgt_dwn = VoxelNode(self.idx + np.array([0, 1, -1]), self, mc[0, 1] + mc[1, 2])
-        lft_up = VoxelNode(self.idx + np.array([0, -1, 1]), self, mc[1, 1] + mc[0, 2])
-        lft_dwn = VoxelNode(self.idx + np.array([0, -1, -1]), self, mc[1, 1] + mc[1, 2])
-        fwd_rgt_up = VoxelNode(self.idx + np.array([1, 1, 1]), self, mc[0, 2] + mc[0, 1] + mc[0, 0])
-        bwd_rgt_up = VoxelNode(self.idx + np.array([-1, 1, 1]), self, mc[1, 2] + mc[0, 1] + mc[0, 0])
-        fwd_lft_up = VoxelNode(self.idx + np.array([1, -1, 1]), self, mc[0, 0] + mc[1, 1] + mc[0, 2])
-        bwd_lft_up = VoxelNode(self.idx + np.array([-1, -1, 1]), self, mc[1, 0] + mc[1, 1] + mc[0, 2])
-        fwd_rgt_dwn = VoxelNode(self.idx + np.array([1, 1, -1]), self, mc[0, 0] + mc[0, 1] + mc[1, 2])
-        bwd_rgt_dwn = VoxelNode(self.idx + np.array([-1, 1, -1]), self, mc[1, 0] + mc[0, 1] + mc[1, 2])
-        fwd_lft_dwn = VoxelNode(self.idx + np.array([1, -1, -1]), self, mc[0, 0] + mc[1, 1] + mc[1, 2])
-        bwd_lft_dwn = VoxelNode(self.idx + np.array([-1, -1, -1]), self, mc[1, 0] + mc[1, 1] + mc[1, 2])
+        fwd = VoxelNode(self.idx + np.array([1, 0, 0]), self, 1)
+        bwd = VoxelNode(self.idx + np.array([-1, 0, 0]), self,1)
+        rgt = VoxelNode(self.idx + np.array([0, 1, 0]), self, 1)
+        lft = VoxelNode(self.idx + np.array([0, -1, 0]), self, 1)
+        up = VoxelNode(self.idx + np.array([0, 0, 1]), self, 1)
+        dwn = VoxelNode(self.idx + np.array([0, 0, -1]), self, 1)
+        fwd_up = VoxelNode(self.idx + np.array([1, 0, 1]), self, 2)
+        fwd_dwn = VoxelNode(self.idx + np.array([1, 0, -1]), self, 2)
+        bwd_up = VoxelNode(self.idx + np.array([-1, 0, 1]), self, 2)
+        bwd_dwn = VoxelNode(self.idx + np.array([-1, 0, -1]), self, 2)
+        fwd_rgt = VoxelNode(self.idx + np.array([1, 1, 0]), self, 2)
+        fwd_lft = VoxelNode(self.idx + np.array([1, -1, 0]), self, 2)
+        bwd_rgt = VoxelNode(self.idx + np.array([-1, 1, 0]), self, 2)
+        bwd_lft = VoxelNode(self.idx + np.array([-1, -1, 0]), self, 2)
+        rgt_up = VoxelNode(self.idx + np.array([0, 1, 1]), self, 2)
+        rgt_dwn = VoxelNode(self.idx + np.array([0, 1, -1]), self, 2)
+        lft_up = VoxelNode(self.idx + np.array([0, -1, 1]), self, 2)
+        lft_dwn = VoxelNode(self.idx + np.array([0, -1, -1]), self, 2)
+        fwd_rgt_up = VoxelNode(self.idx + np.array([1, 1, 1]), self, 3)
+        bwd_rgt_up = VoxelNode(self.idx + np.array([-1, 1, 1]), self, 3)
+        fwd_lft_up = VoxelNode(self.idx + np.array([1, -1, 1]), self, 3)
+        bwd_lft_up = VoxelNode(self.idx + np.array([-1, -1, 1]), self, 3)
+        fwd_rgt_dwn = VoxelNode(self.idx + np.array([1, 1, -1]), self, 3)
+        bwd_rgt_dwn = VoxelNode(self.idx + np.array([-1, 1, -1]), self, 3)
+        fwd_lft_dwn = VoxelNode(self.idx + np.array([1, -1, -1]), self, 3)
+        bwd_lft_dwn = VoxelNode(self.idx + np.array([-1, -1, -1]), self, 3)
         return [fwd, bwd, rgt, lft, up, dwn, fwd_rgt_up, fwd_rgt_dwn,
             fwd_up, fwd_dwn, bwd_up, bwd_dwn, fwd_rgt, fwd_lft, bwd_rgt, bwd_lft,
             rgt_up, rgt_dwn, lft_up, lft_dwn,
@@ -60,7 +58,11 @@ def index_in_bounds(idx, grid):
         (idx[1] >= 0) and (idx[2] >= 0))
 
 def manh_dist(p1, p2):
-    return abs(p1.idx[0] - p2.idx[0]) + abs(p1.idx[1] - p2.idx[1]) + abs(p1.idx[2] - p2.idx[2])
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2])
+
+def sqr_dist(p1, p2):
+    p = p1 - p2
+    return p[0] * p[0] + p[1] * p[1] + p[2] * p[2]
 
 def find_path_A_star(grid, start, end, stop_condition):
     frontier = PriorityQueue()
@@ -81,7 +83,7 @@ def find_path_A_star(grid, start, end, stop_condition):
                 if (next not in cost_graph) or (new_cost < cost_graph[next].cost):
                     next.cost = new_cost
                     cost_graph[next] = next
-                    priority = new_cost + manh_dist(next, end_node)
+                    priority = new_cost + sqr_dist(next.idx, end_node.idx)
                     frontier.put((priority, next))
     
     return cost_graph

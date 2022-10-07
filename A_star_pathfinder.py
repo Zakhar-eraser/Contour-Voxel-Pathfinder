@@ -64,6 +64,12 @@ def sqr_dist(p1, p2):
     p = p1 - p2
     return p[0] * p[0] + p[1] * p[1] + p[2] * p[2]
 
+def vox_available(grid, idx):
+    
+
+def route_graph(occupancy_grid):
+
+
 def find_path_A_star(grid, start, end, stop_condition):
     frontier = PriorityQueue()
     start_node = VoxelNode(start, None, 0.0)

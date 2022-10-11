@@ -7,10 +7,11 @@ obstacle_cost = 1.0
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
 
-    def __init__(self, idx, parent, cost):
+    def __init__(self, idx, parent, cost, neighbours):
         self.idx = idx
         self.parent = parent
         self.cost = cost
+        self.nbrs = neighbours
     
     def __eq__(self, __o: object) -> bool:
         return np.array_equal(self.idx, __o.idx)
@@ -20,39 +21,6 @@ class VoxelNode:
 
     def __lt__(self, other):
         return self.cost < other.cost
-
-    def get_neigbours(self):
-        fwd = VoxelNode(self.idx + np.array([1, 0, 0]), self, 1)
-        bwd = VoxelNode(self.idx + np.array([-1, 0, 0]), self,1)
-        rgt = VoxelNode(self.idx + np.array([0, 1, 0]), self, 1)
-        lft = VoxelNode(self.idx + np.array([0, -1, 0]), self, 1)
-        up = VoxelNode(self.idx + np.array([0, 0, 1]), self, 1)
-        dwn = VoxelNode(self.idx + np.array([0, 0, -1]), self, 1)
-        fwd_up = VoxelNode(self.idx + np.array([1, 0, 1]), self, 2)
-        fwd_dwn = VoxelNode(self.idx + np.array([1, 0, -1]), self, 2)
-        bwd_up = VoxelNode(self.idx + np.array([-1, 0, 1]), self, 2)
-        bwd_dwn = VoxelNode(self.idx + np.array([-1, 0, -1]), self, 2)
-        fwd_rgt = VoxelNode(self.idx + np.array([1, 1, 0]), self, 2)
-        fwd_lft = VoxelNode(self.idx + np.array([1, -1, 0]), self, 2)
-        bwd_rgt = VoxelNode(self.idx + np.array([-1, 1, 0]), self, 2)
-        bwd_lft = VoxelNode(self.idx + np.array([-1, -1, 0]), self, 2)
-        rgt_up = VoxelNode(self.idx + np.array([0, 1, 1]), self, 2)
-        rgt_dwn = VoxelNode(self.idx + np.array([0, 1, -1]), self, 2)
-        lft_up = VoxelNode(self.idx + np.array([0, -1, 1]), self, 2)
-        lft_dwn = VoxelNode(self.idx + np.array([0, -1, -1]), self, 2)
-        fwd_rgt_up = VoxelNode(self.idx + np.array([1, 1, 1]), self, 3)
-        bwd_rgt_up = VoxelNode(self.idx + np.array([-1, 1, 1]), self, 3)
-        fwd_lft_up = VoxelNode(self.idx + np.array([1, -1, 1]), self, 3)
-        bwd_lft_up = VoxelNode(self.idx + np.array([-1, -1, 1]), self, 3)
-        fwd_rgt_dwn = VoxelNode(self.idx + np.array([1, 1, -1]), self, 3)
-        bwd_rgt_dwn = VoxelNode(self.idx + np.array([-1, 1, -1]), self, 3)
-        fwd_lft_dwn = VoxelNode(self.idx + np.array([1, -1, -1]), self, 3)
-        bwd_lft_dwn = VoxelNode(self.idx + np.array([-1, -1, -1]), self, 3)
-        return [fwd, bwd, rgt, lft, up, dwn, fwd_rgt_up, fwd_rgt_dwn,
-            fwd_up, fwd_dwn, bwd_up, bwd_dwn, fwd_rgt, fwd_lft, bwd_rgt, bwd_lft,
-            rgt_up, rgt_dwn, lft_up, lft_dwn,
-            bwd_rgt_dwn, bwd_rgt_up, fwd_lft_dwn, fwd_lft_up, bwd_lft_dwn, bwd_lft_up]
-        
     
 def index_in_bounds(idx, grid):
     bounds = grid.shape
@@ -60,45 +28,38 @@ def index_in_bounds(idx, grid):
         and not grid[idx[0], idx[1], idx[2]]) and ((idx[0] >= 0) and
         (idx[1] >= 0) and (idx[2] >= 0))
 
-def count_obstacles(grid, idx):
-    count = 0
+def local_free_grid(grid, idx):
+    local_grid = np.zeros((3, 3, 3), np.int32)
     for x in range(-1, 2):
         for y in range(-1, 2):
             for z in range(-1, 2):
-                if not index_in_bounds(idx + np.array((x, y, z), np.int32), grid):
-                    count += 1
-    return count
+                if index_in_bounds(idx + np.array((x, y, z), np.int32), grid):
+                    local_grid[x, y, z] = 1
+    return local_grid
 
-#def get_center_neighbours(grid, vox):
-#    nghbrs = list()
-#    for shift in range(3):
-#        for i in (-1, 1):
-#            new_idx = vox + np.roll(np.array((i, 0, 0), np.int32), shift)
-#            if index_in_bounds(new_idx, grid):
-#                nghbrs.append(VoxelNode(new_idx, vox, voxel_step_cost + count_obstacles(grid, new_idx) * obstacle_cost))
-#    return nghbrs
-
-def limit_max_idx(idx, shape):
-    if idx[0] >= shape: idx[0] = shape - 1
-    if idx[1] >= shape: idx[1] = shape - 1
-    if idx[2] >= shape: idx[2] = shape - 1
-    return idx
-
-def limit_min_index(idx):
-    if idx[0] < 0: idx[0] = 0
-    if idx[1] < 0: idx[1] = 0
-    if idx[2] < 0: idx[2] = 0
-    return idx
-
-def get_neighbours_occupancy(grid, vox):
-    min_idx = limit_min_index(vox.idx - np.ones((1, 3), np.int32))
-    max_idx = limit_max_idx(vox.idx + np.ones((1, 3), np.int32))
-    neigh_grid = np.copy(grid[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], min_idx[2]:max_idx[2]])
+def get_neighbours_occupancy(local_grid):
+    for order in range(3):
+        for i in (-1, 1):
+            for j in (-1, 1):
+                n1 = np.roll(np.array((i, 0, 0), np.int32), order)
+                n2 = np.roll(np.array((0, j, 0), np.int32), order)
+                if (not local_grid[tuple(n1)]) or (not local_grid[tuple(n2)]):
+                    local_grid[tuple(n1 + n2)] = 0
     
+    for i in (-1, 1):
+        for j in (-1, 1):
+            for k in (-1, 1):
+                n1 = np.array((i, 0, 0), np.int32)
+                n2 = np.array((0, j, 0), np.int32)
+                n3 = np.array((0, 0, k), np.int32)
+                if (not local_grid[tuple(n1)]) or (not local_grid[tuple(n2)]) or (
+                    not local_grid(tuple(n3))
+                    ):
+                    local_grid[tuple(n1 + n2 + n3)] = 0
+    return local_grid
 
-#def get_neighbours(grid, vox):
-    
-
+def get_neighbours(grid, vox):
+    get_neighbours_occupancy()
 
 def manh_dist(v1, v2):
     v = v1.idx - v2.idx

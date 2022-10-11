@@ -1,6 +1,9 @@
 import numpy as np
 from queue import PriorityQueue
 
+voxel_step_cost = 1.0
+obstacle_cost = 1.0
+
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
 
@@ -49,6 +52,7 @@ class VoxelNode:
             fwd_up, fwd_dwn, bwd_up, bwd_dwn, fwd_rgt, fwd_lft, bwd_rgt, bwd_lft,
             rgt_up, rgt_dwn, lft_up, lft_dwn,
             bwd_rgt_dwn, bwd_rgt_up, fwd_lft_dwn, fwd_lft_up, bwd_lft_dwn, bwd_lft_up]
+        
     
 def index_in_bounds(idx, grid):
     bounds = grid.shape
@@ -56,18 +60,53 @@ def index_in_bounds(idx, grid):
         and not grid[idx[0], idx[1], idx[2]]) and ((idx[0] >= 0) and
         (idx[1] >= 0) and (idx[2] >= 0))
 
-def manh_dist(p1, p2):
-    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2])
+def count_obstacles(grid, idx):
+    count = 0
+    for x in range(-1, 2):
+        for y in range(-1, 2):
+            for z in range(-1, 2):
+                if not index_in_bounds(idx + np.array((x, y, z), np.int32), grid):
+                    count += 1
+    return count
 
-def sqr_dist(p1, p2):
-    p = p1 - p2
-    return p[0] * p[0] + p[1] * p[1] + p[2] * p[2]
+#def get_center_neighbours(grid, vox):
+#    nghbrs = list()
+#    for shift in range(3):
+#        for i in (-1, 1):
+#            new_idx = vox + np.roll(np.array((i, 0, 0), np.int32), shift)
+#            if index_in_bounds(new_idx, grid):
+#                nghbrs.append(VoxelNode(new_idx, vox, voxel_step_cost + count_obstacles(grid, new_idx) * obstacle_cost))
+#    return nghbrs
 
-def vox_available(grid, idx):
+def limit_max_idx(idx, shape):
+    if idx[0] >= shape: idx[0] = shape - 1
+    if idx[1] >= shape: idx[1] = shape - 1
+    if idx[2] >= shape: idx[2] = shape - 1
+    return idx
+
+def limit_min_index(idx):
+    if idx[0] < 0: idx[0] = 0
+    if idx[1] < 0: idx[1] = 0
+    if idx[2] < 0: idx[2] = 0
+    return idx
+
+def get_neighbours_occupancy(grid, vox):
+    min_idx = limit_min_index(vox.idx - np.ones((1, 3), np.int32))
+    max_idx = limit_max_idx(vox.idx + np.ones((1, 3), np.int32))
+    neigh_grid = np.copy(grid[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], min_idx[2]:max_idx[2]])
     
 
-def route_graph(occupancy_grid):
+#def get_neighbours(grid, vox):
+    
 
+
+def manh_dist(v1, v2):
+    v = v1.idx - v2.idx
+    return abs(v[0]) + abs(v[1]) + abs(v[2])
+
+def sqr_dist(v1, v2):
+    v = v1.idx - v2.idx
+    return v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
 
 def find_path_A_star(grid, start, end, stop_condition):
     frontier = PriorityQueue()
@@ -83,13 +122,12 @@ def find_path_A_star(grid, start, end, stop_condition):
             break
       
         for next in current.get_neigbours():
-            if index_in_bounds(next.idx, grid):
-                new_cost = cost_graph[current].cost + next.cost
-                if (next not in cost_graph) or (new_cost < cost_graph[next].cost):
-                    next.cost = new_cost
-                    cost_graph[next] = next
-                    priority = new_cost + sqr_dist(next.idx, end_node.idx)
-                    frontier.put((priority, next))
+            new_cost = cost_graph[current].cost + next.cost
+            if (next not in cost_graph) or (new_cost < cost_graph[next].cost):
+                next.cost = new_cost
+                cost_graph[next] = next
+                priority = new_cost + manh_dist(next, end_node)
+                frontier.put((priority, next))
     
     return cost_graph
 

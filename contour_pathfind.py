@@ -99,18 +99,20 @@ def draw_route(voxel_grid, route, min_bound):
 
 def main():
     pcd = o3d.io.read_point_cloud(input_path)
-    print("Yellow sphere is the start point, Blue sphere is the target point")
-    mission_points_ids = list(set(pick_points(pcd)))
-    assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
+    #print("Yellow sphere is the start point, Blue sphere is the target point")
+    #mission_points_ids = list(set(pick_points(pcd)))
+    #assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
 
-    target_point = np.asarray(pcd.points)[mission_points_ids[0]]
-    start_point = np.asarray(pcd.points)[mission_points_ids[1]]
+    #target_point = np.asarray(pcd.points)[mission_points_ids[0]]
+    #start_point = np.asarray(pcd.points)[mission_points_ids[1]]
 
     pcd = pcd.voxel_down_sample(voxel_size)
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
-    target_voxel = voxel_grid.get_voxel(target_point)
-    start_voxel = voxel_grid.get_voxel(start_point)
+    #target_voxel = voxel_grid.get_voxel(target_point)
+    #start_voxel = voxel_grid.get_voxel(start_point)
+    start_voxel = voxel_grid.get_voxel(np.array((-19, 17, 15))) ## test
+    target_voxel = voxel_grid.get_voxel(np.array((31, -13, 79))) ## test
 
     voxels = voxel_grid.get_voxels()
     boundary = get_max_bounding_idx(pcd)

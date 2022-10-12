@@ -2,7 +2,7 @@ import numpy as np
 from queue import PriorityQueue
 
 voxel_step_cost = 1.0
-obstacle_cost = 1.0
+obstacle_cost = 0.0
 
 class VoxelNode:
     """An object of the class contains voxel`s indexes and cost of movement to the voxel"""
@@ -25,8 +25,6 @@ class VoxelNode:
 class CostGraph:
     """Counts and saves the cost of voxels"""
 
-    cost_koeff = 1 / 26
-
     def __init__(self, grid):
         self.graph = {}
         self.grid = grid
@@ -45,7 +43,7 @@ class CostGraph:
         for x in range(-1, 2):
             for y in range(-1, 2):
                 for z in range(-1, 2):
-                    if self.__index_in_bounds__(idx + np.array((x, y, z), np.int32), self.grid):
+                    if self.__index_in_bounds__(idx + np.array((x, y, z), np.int32)):
                         local_grid[x, y, z] = 1
         return local_grid
 
@@ -65,7 +63,7 @@ class CostGraph:
                     n2 = np.array((0, j, 0), np.int32)
                     n3 = np.array((0, 0, k), np.int32)
                     if (not local_grid[tuple(n1)]) or (not local_grid[tuple(n2)]) or (
-                        not local_grid(tuple(n3))
+                        not local_grid[tuple(n3)]
                         ):
                         local_grid[tuple(n1 + n2 + n3)] = 0
         return local_grid
@@ -79,20 +77,23 @@ class CostGraph:
                 for z in range(-1, 2):
                     local_idx = (x, y, z)
                     if nbrs_grid[local_idx]:
-                        list.append(np.array(local_idx) + idx)
+                        nbrs.append(np.array(local_idx) + idx)
+        return nbrs
 
     def __cost__(self, voxel):
-        return (26 - len(voxel.nbrs)) * CostGraph.cost_koeff
+        #return (26 - len(voxel.nbrs)) * obstacle_cost
+        return obstacle_cost if len(voxel.nbrs) < 26 else 0
 
     def __setitem__(self, key, voxel):
         voxel.nbrs = self.__get_neighbours__(voxel)
-        voxel.cost
+        voxel.cost = self.__cost__(voxel)
         self.graph[key] = voxel
 
 def get_neighbours(voxel):
     nbrs = list()
     for idx in voxel.nbrs:
         nbrs.append(VoxelNode(idx, voxel))
+    return nbrs
 
 def manh_dist(v1, v2):
     v = v1.idx - v2.idx
@@ -102,12 +103,16 @@ def sqr_dist(v1, v2):
     v = v1.idx - v2.idx
     return v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
 
+def heuristics(cur, next, end):
+    return voxel_step_cost * manh_dist(cur, next) + manh_dist(next, end)
+
 def find_path_A_star(grid, start, end, stop_condition):
     frontier = PriorityQueue()
-    start_node = VoxelNode(start, None, 0.0)
-    end_node = VoxelNode(end, None, None)
+    start_node = VoxelNode(start, None)
+    end_node = VoxelNode(end, None)
     frontier.put((0, start_node))
-    cost_graph = {start_node: start_node}
+    costs = CostGraph(grid)
+    costs[start_node] = start_node
 
     while not frontier.empty():
         current = frontier.get()[1]
@@ -115,18 +120,18 @@ def find_path_A_star(grid, start, end, stop_condition):
         if stop_condition(current, end_node):
             break
       
-        for next in current.get_neigbours():
-            new_cost = cost_graph[current].cost + next.cost
-            if (next not in cost_graph) or (new_cost < cost_graph[next].cost):
+        for next in get_neighbours(current):
+            new_cost = costs[current].cost + next.cost
+            if (next not in costs.graph) or (new_cost < costs[next].cost):
                 next.cost = new_cost
-                cost_graph[next] = next
-                priority = new_cost + manh_dist(next, end_node)
+                costs[next] = next
+                priority = new_cost + heuristics(current, next, end_node)
                 frontier.put((priority, next))
     
-    return cost_graph
+    return costs.graph
 
 def get_route_idx(graph, end):
-    cur = graph[VoxelNode(end, None, None)]
+    cur = graph[VoxelNode(end, None)]
     route = list()
     while cur.parent is not None:
         route.append(cur.idx)

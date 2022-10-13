@@ -22,7 +22,10 @@ def get_max_bounding_idx(pcd):
     return max_idx
 
 def get_occupancy_grid(boundary, voxels):
-    grid = np.zeros((boundary[0], boundary[1], boundary[2]), dtype=np.int32)
+    grid = np.zeros(tuple(boundary + 2), dtype=np.int8)
+    grid[:, :, 0] = 1
+    grid[:, :, boundary[2] + 1] = 1
+    
     for vox in voxels:
         grid[vox.grid_index[0], vox.grid_index[1], vox.grid_index[2]] = 1
     return grid
@@ -43,7 +46,7 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
     dY = target_voxel[1] - start_voxel[1]
     dZ = target_voxel[2] - start_voxel[2]
     vox_step = voxel_size / 2
-    B = np.full(shape=3, fill_value=vox_step, dtype=np.float32)
+    B = np.full((1, 3), fill_value=vox_step, dtype=np.float32)
     if dX < 0: B[0] = -B[0]
     if dY < 0: B[1] = -B[1]
     if dZ < 0: B[2] = -B[2]

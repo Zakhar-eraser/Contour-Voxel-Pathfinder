@@ -2,8 +2,8 @@ import numpy as np
 from queue import PriorityQueue
 
 voxel_step_cost = 1.0
-obstacle_cost = 1.0
-obstacle_check_depth = 1
+obstacle_cost = 0.0
+obstacle_check_depth = 0
 
 class Node:
     """Interface to work numpy array with PriorityQueue"""
@@ -22,14 +22,14 @@ class Node:
         return self.priority < other.priority
 
 def get_neighbours_occupancy(local_grid):
-    #print(local_grid)
+    local_grid[1, 1, 1] = 1
     for order in range(3):
         for i in (-1, 1):
             for j in (-1, 1):
                 n1 = np.roll((i, 0, 0), order)
                 n2 = np.roll((0, j, 0), order)
-                if local_grid[tuple(n1)] or local_grid[tuple(n2)]:
-                    local_grid[tuple(n1 + n2)] = 1
+                if local_grid[tuple(n1 + 1)] or local_grid[tuple(n2 + 1)]:
+                    local_grid[tuple(n1 + n2 + 1)] = 1
 
     for i in (-1, 1):
         for j in (-1, 1):
@@ -37,10 +37,13 @@ def get_neighbours_occupancy(local_grid):
                 n1 = np.array((i, 0, 0), np.int8)
                 n2 = np.array((0, j, 0), np.int8)
                 n3 = np.array((0, 0, k), np.int8)
-                if local_grid[tuple(n1)] or local_grid[tuple(n2)] or (
-                    local_grid[tuple(n3)]
-                    ):
-                    local_grid[tuple(n1 + n2 + n3)] = 1
+                if local_grid[tuple(n1 + 1)] or local_grid[tuple(n2 + 1)] or\
+                    local_grid[tuple(n3  + 1)] or\
+                    local_grid[tuple(np.array((i, j, 0), np.int8) + 1)] or\
+                    local_grid[tuple(np.array((i, 0, k), np.int8) + 1)] or\
+                    local_grid[tuple(np.array((0, j, k), np.int8) + 1)]:
+                    local_grid[tuple(n1 + n2 + n3 + 1)] = 1
+    #print(local_grid)
     return local_grid
 
 def get_neighbours(grid, idx):
@@ -87,7 +90,7 @@ def obstacle_closeness(grid, idx):
                         if grid[tuple(idx + np.roll((i, j, k), shift))]:
                             return depth
 
-    return obstacle_check_depth
+    return 100
 
 def get_cost(grid, current, next):
     dist_cost = manh_dist(current, next)
@@ -114,7 +117,7 @@ def find_path_A_star(grid, start, end, stop_condition):
         for next in nbrs:
             new_cost = costs[tuple(current)] + get_cost(grid, current, next)
             if (tuple(next) not in costs) or (new_cost < costs[tuple(next)]):
-                parents[tuple(current)] = next
+                parents[tuple(next)] = current
                 costs[tuple(next)] = new_cost
                 next_node = Node(next, new_cost + heuristics(next, end))
                 frontier.put((next_node.priority, next_node))

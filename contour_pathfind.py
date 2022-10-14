@@ -80,7 +80,7 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         if (distXZ <= distXY) and (distXZ <= distYZ):
             cur_voxel[1] += sY
         if (distYZ <= distXZ) and (distYZ <= distXY):
-            cur_voxel[2] += sZ
+            cur_voxel[0] += sX
         
         if occupancy_grid[cur_voxel[0], cur_voxel[1], cur_voxel[2]]:
             intersect = 1
@@ -109,17 +109,16 @@ def main():
     print("Yellow sphere is the start point, Blue sphere is the target point")
     mission_points_ids = list(set(pick_points(pcd)))
     assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
-
     target_point = np.asarray(pcd.points)[mission_points_ids[0]]
     start_point = np.asarray(pcd.points)[mission_points_ids[1]]
+    ##target_point = np.array((32, -2, 92))
+    ##start_point = np.array((34, -17, 92))
 
     pcd = pcd.voxel_down_sample(voxel_size)
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
     target_voxel = voxel_grid.get_voxel(target_point)
     start_voxel = voxel_grid.get_voxel(start_point)
-    ##start_voxel = voxel_grid.get_voxel(np.array((-19, 17, 15))) ## test
-    ##target_voxel = voxel_grid.get_voxel(np.array((31, -13, 79))) ## test
 
     start_voxel += 1
     target_voxel += 1

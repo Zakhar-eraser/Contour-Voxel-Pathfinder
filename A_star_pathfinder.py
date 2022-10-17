@@ -1,10 +1,11 @@
 from math import dist
 import numpy as np
 from queue import PriorityQueue
+import voxel_raycast as vr
 
 voxel_step_cost = 1.0
 obstacle_cost = 2.0
-obstacle_check_depth = 1
+obstacle_check_depth = 0
 
 class Node:
     """Interface to work numpy array with PriorityQueue"""
@@ -63,10 +64,6 @@ def get_neighbours(grid, idx):
 def manh_dist(v1, v2):
     return np.sum(np.abs(v1 - v2))
 
-def sqr_dist(v1, v2):
-    v = v1 - v2
-    return v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
-
 def heuristics(cur, end):
     return manh_dist(cur, end)
 
@@ -102,7 +99,7 @@ def get_cost(grid, current, next):
     cost = dist_cost + obst_cost
     return cost
 
-def find_path_A_star(grid, start, end, stop_condition):
+def find_path_A_star(grid, start, end):
     frontier = PriorityQueue()
     frontier.put((0, Node(start, 0)))
     costs = {tuple(start): 0.0}
@@ -111,7 +108,8 @@ def find_path_A_star(grid, start, end, stop_condition):
     while not frontier.empty():
         current = frontier.get()[1].idx
 
-        if stop_condition(current, end):
+        if not vr.check_intersection(current, end, grid):
+            parents[tuple(end)] = current
             break
         
         nbrs = get_neighbours(grid, current)

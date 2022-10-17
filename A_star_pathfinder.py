@@ -1,9 +1,10 @@
+from math import dist
 import numpy as np
 from queue import PriorityQueue
 
 voxel_step_cost = 1.0
-obstacle_cost = 0.0
-obstacle_check_depth = 0
+obstacle_cost = 2.0
+obstacle_check_depth = 1
 
 class Node:
     """Interface to work numpy array with PriorityQueue"""
@@ -39,28 +40,28 @@ def get_neighbours_occupancy(local_grid):
                 n3 = np.array((0, 0, k), np.int8)
                 if local_grid[tuple(n1 + 1)] or local_grid[tuple(n2 + 1)] or\
                     local_grid[tuple(n3  + 1)] or\
-                    local_grid[tuple(np.array((i, j, 0), np.int8) + 1)] or\
-                    local_grid[tuple(np.array((i, 0, k), np.int8) + 1)] or\
-                    local_grid[tuple(np.array((0, j, k), np.int8) + 1)]:
+                    local_grid[tuple(n1 + n2 + 1)] or\
+                    local_grid[tuple(n1 + n3 + 1)] or\
+                    local_grid[tuple(n2 + n3 + 1)]:
                     local_grid[tuple(n1 + n2 + n3 + 1)] = 1
     #print(local_grid)
     return local_grid
 
 def get_neighbours(grid, idx):
-    nbrs_grid = get_neighbours_occupancy(np.copy(
-        grid[idx[0] - 1:idx[0] + 2, idx[1] - 1:idx[1] + 2, idx[2] - 1:idx[2] + 2]))
+    local_grid = np.copy(
+        grid[idx[0] - 1:idx[0] + 2, idx[1] - 1:idx[1] + 2, idx[2] - 1:idx[2] + 2])
+    nbrs_grid = get_neighbours_occupancy(local_grid)
     nbrs = list()
-    for x in range(-1, 2):
-        for y in range(-1, 2):
-            for z in range(-1, 2):
+    for x in range(3):
+        for y in range(3):
+            for z in range(3):
                 local_idx = (x, y, z)
                 if not nbrs_grid[local_idx]:
-                    nbrs.append(np.array(local_idx) + idx)
+                    nbrs.append(np.array(local_idx) - 1 + idx)
     return nbrs
 
 def manh_dist(v1, v2):
-    v = v1 - v2
-    return abs(v[0]) + abs(v[1]) + abs(v[2])
+    return np.sum(np.abs(v1 - v2))
 
 def sqr_dist(v1, v2):
     v = v1 - v2

@@ -59,8 +59,6 @@ def main():
     assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
     target_point = np.asarray(pcd.points)[mission_points_ids[0]]
     start_point = np.asarray(pcd.points)[mission_points_ids[1]]
-    ##target_point = np.array((32, -2, 92))
-    ##start_point = np.array((34, -17, 92))
 
     pcd = pcd.voxel_down_sample(voxel_size)
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)

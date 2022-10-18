@@ -16,8 +16,8 @@ def xStep(pos, steps, start_pos, bnds, ds):
     pos[0] += steps[0]
 
 def xyStep(pos, steps, start_pos, bnds, dds):
-    x_by_y = dds[0] * (bnds[1] - start_pos[1])
-    y_by_x = dds[1] * (bnds[0] - start_pos[0])
+    x_by_y = dds[0] * (bnds[1] - start_pos[1]) + start_pos[0]
+    y_by_x = dds[1] * (bnds[0] - start_pos[0]) + start_pos[1]
     distXZ = sqr_dist((bnds[0], y_by_x, start_pos[2]), pos)
     distYZ = sqr_dist((x_by_y, bnds[1], start_pos[2]), pos)
     if distXZ == distYZ:
@@ -28,9 +28,9 @@ def xyStep(pos, steps, start_pos, bnds, dds):
         pos[1] += steps[1]
 
 def yzStep(pos, steps, start_pos, bnds, dds):
-    y_by_z = dds[0] * (bnds[2] - start_pos[2])
+    y_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[1]
     distXY = sqr_dist((start_pos[0], y_by_z, bnds[2]), pos)
-    z_by_y = dds[1] * (bnds[1] - start_pos[1])
+    z_by_y = dds[1] * (bnds[1] - start_pos[1]) + start_pos[2]
     distYZ = sqr_dist((start_pos[0], bnds[1], z_by_y), pos)
 
     if distYZ == distXY:
@@ -41,8 +41,8 @@ def yzStep(pos, steps, start_pos, bnds, dds):
         pos[2] += steps[2]
 
 def xzStep(pos, steps, start_pos, bnds, dds):
-    x_by_z = dds[0] * (bnds[2] - start_pos[2])
-    z_by_x = dds[1] * (bnds[0] - start_pos[0])
+    x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
+    z_by_x = dds[1] * (bnds[0] - start_pos[0]) + start_pos[2]
     distXZ = sqr_dist((bnds[0], start_pos[1], z_by_x), pos)
     distXY = sqr_dist((x_by_z, start_pos[1], bnds[2]), pos)
 
@@ -54,12 +54,12 @@ def xzStep(pos, steps, start_pos, bnds, dds):
         pos[2] += steps[2]
 
 def xyzStep(pos, steps, start_pos, bnds, dds):
-    x_by_z = dds[0] * (bnds[2] - start_pos[2])
-    y_by_z = dds[1] * (bnds[2] - start_pos[2])
-    z_by_x = dds[2] * (bnds[0] - start_pos[0])
+    x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
+    y_by_z = dds[1] * (bnds[2] - start_pos[2]) + start_pos[1]
+    z_by_x = dds[2] * (bnds[0] - start_pos[0]) + start_pos[2]
     distXY = sqr_dist((x_by_z, y_by_z, bnds[2]), pos)
-    distYZ = sqr_dist((bnds[0], y_by_z, z_by_x), pos)
-    distXZ = sqr_dist((x_by_z, bnds[1], z_by_x), pos)
+    distYZ = sqr_dist((x_by_z, bnds[1], z_by_x), pos)
+    distXZ = sqr_dist((bnds[0], y_by_z, z_by_x), pos)
 
     if (distXY == distYZ) and (distXY == distXZ):
         pos += steps

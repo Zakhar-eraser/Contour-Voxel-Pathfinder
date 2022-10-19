@@ -66,8 +66,8 @@ def main():
     target_voxel = voxel_grid.get_voxel(target_point)
     start_voxel = voxel_grid.get_voxel(start_point)
 
-    start_voxel += 1
-    target_voxel += 1
+    start_voxel += (1, 1, 2)
+    target_voxel += (1, 1, 2)
     voxels = voxel_grid.get_voxels()
     shape = get_max_shape_idx(pcd)
     occupancy_grid = get_occupancy_grid(shape, voxels)

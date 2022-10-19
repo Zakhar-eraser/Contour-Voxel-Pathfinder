@@ -118,7 +118,7 @@ def find_path_A_star(grid, start, end):
             if (tuple(next) not in costs) or (new_cost < costs[tuple(next)]):
                 parents[tuple(next)] = current
                 costs[tuple(next)] = new_cost
-                next_node = Node(next, new_cost + heuristics(next, end))
+                next_node = Node(next, new_cost + 0.5 * heuristics(next, end))
                 frontier.put((next_node.priority, next_node))
     
     return parents

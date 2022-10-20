@@ -54,7 +54,6 @@ def draw_route(voxel_grid, route, min_bound):
 
 def main():
     pcd = o3d.io.read_point_cloud(input_path)
-    print("Yellow sphere is the start point, Blue sphere is the target point")
     mission_points_ids = list(set(pick_points(pcd)))
     assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
     target_point = np.asarray(pcd.points)[mission_points_ids[0]]
@@ -66,8 +65,8 @@ def main():
     target_voxel = voxel_grid.get_voxel(target_point)
     start_voxel = voxel_grid.get_voxel(start_point)
 
-    start_voxel += (1, 1, 2)
-    target_voxel += (1, 1, 2)
+    start_voxel += 1
+    target_voxel += 1
     voxels = voxel_grid.get_voxels()
     shape = get_max_shape_idx(pcd)
     occupancy_grid = get_occupancy_grid(shape, voxels)

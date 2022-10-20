@@ -69,12 +69,18 @@ def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
         pos = posXY
 
 def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
-    x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
-    y_by_z = dds[1] * (bnds[2] - start_pos[2]) + start_pos[1]
-    z_by_x = dds[2] * (bnds[0] - start_pos[0]) + start_pos[2]
+    x_by_z = dds[1] * (bnds[2] - start_pos[2]) + start_pos[0]
+    y_by_z = dds[3] * (bnds[2] - start_pos[2]) + start_pos[1]
     posXY = (x_by_z, y_by_z, bnds[2])
-    posYZ = (bnds[0], y_by_z, z_by_x)
-    posXZ = (x_by_z, bnds[1], z_by_x)
+
+    y_by_x = dds[2] * (bnds[0] - start_pos[0]) + start_pos[1]
+    z_by_x = dds[4] * (bnds[0] - start_pos[0]) + start_pos[2]
+    posYZ = (bnds[0], y_by_x, z_by_x)
+
+    x_by_y = dds[0] * (bnds[1] - start_pos[1]) + start_pos[0]
+    z_by_y = dds[5] * (bnds[1] - start_pos[1]) + start_pos[2]
+    posXZ = (x_by_y, bnds[1], z_by_y)
+    
     distXY = sqr_dist(posXY, pos)
     distYZ = sqr_dist(posYZ, pos)
     distXZ = sqr_dist(posXZ, pos)
@@ -151,7 +157,7 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         dds = (dX/dY, dY/dX)
     else:
         step_fun = xyzStep
-        dds = (dX/dZ, dY/dZ, dZ/dX)
+        dds = (dX/dY, dX/dZ, dY/dX, dY/dZ, dZ/dX, dZ/dY)
     
     while (intersect == False) and (not np.array_equal(cur_voxel, target_voxel)):
         step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)

@@ -6,87 +6,119 @@ def sqr_dist(v1, v2):
     v = v1 - v2
     return np.sum(np.square(v))
 
-def zStep(pos, steps, start_pos, bnds, ds):
-    pos[2] += steps[2]
+def zStep(pos, cur_voxel, steps, start_pos, bnds, ds):
+    cur_voxel[2] += steps[2]
 
-def yStep(pos, steps, start_pos, bnds, ds):
-    pos[1] += steps[1]
+def yStep(pos, cur_voxel, steps, start_pos, bnds, ds):
+    cur_voxel[1] += steps[1]
 
-def xStep(pos, steps, start_pos, bnds, ds):
-    pos[0] += steps[0]
+def xStep(pos, cur_voxel, steps, start_pos, bnds, ds):
+    cur_voxel[0] += steps[0]
 
-def xyStep(pos, steps, start_pos, bnds, dds):
+def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_y = dds[0] * (bnds[1] - start_pos[1]) + start_pos[0]
     y_by_x = dds[1] * (bnds[0] - start_pos[0]) + start_pos[1]
-    distXZ = sqr_dist((x_by_y, bnds[1], start_pos[2]), pos)
-    distYZ = sqr_dist((bnds[0], y_by_x, start_pos[2]), pos)
+    posXZ = (x_by_y, bnds[1], start_pos[2])
+    posYZ = (bnds[0], y_by_x, start_pos[2])
+    distXZ = sqr_dist(posXZ, pos)
+    distYZ = sqr_dist(posYZ, pos)
     if distXZ == distYZ:
-        pos += (steps[0], steps[1], 0)
+        cur_voxel += (steps[0], steps[1], 0)
+        pos = posXZ
     elif distXZ < distYZ:
-        pos[1] += steps[1]
+        cur_voxel[1] += steps[1]
+        pos = posXZ
     else:
-        pos[0] += steps[0]
+        cur_voxel[0] += steps[0]
+        pos = posYZ
 
-def yzStep(pos, steps, start_pos, bnds, dds):
+def yzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     y_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[1]
-    distXY = sqr_dist((start_pos[0], y_by_z, bnds[2]), pos)
+    posXY = (start_pos[0], y_by_z, bnds[2])
+    distXY = sqr_dist(posXY, pos)
     z_by_y = dds[1] * (bnds[1] - start_pos[1]) + start_pos[2]
-    distXZ = sqr_dist((start_pos[0], bnds[1], z_by_y), pos)
+    posXZ = (start_pos[0], bnds[1], z_by_y)
+    distXZ = sqr_dist(posXZ, pos)
 
     if distXZ == distXY:
-        pos += (0, steps[1], steps[2])
+        cur_voxel += (0, steps[1], steps[2])
+        pos = posXZ
     elif distXZ < distXY:
-        pos[1] += steps[1]
+        cur_voxel[1] += steps[1]
+        pos = posXZ
     else:
-        pos[2] += steps[2]
+        cur_voxel[2] += steps[2]
+        pos = posXY
 
-def xzStep(pos, steps, start_pos, bnds, dds):
+def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
     z_by_x = dds[1] * (bnds[0] - start_pos[0]) + start_pos[2]
-    distYZ = sqr_dist((bnds[0], start_pos[1], z_by_x), pos)
-    distXY = sqr_dist((x_by_z, start_pos[1], bnds[2]), pos)
+    posYZ = (bnds[0], start_pos[1], z_by_x)
+    posXY = (x_by_z, start_pos[1], bnds[2])
+    distYZ = sqr_dist(posYZ, pos)
+    distXY = sqr_dist(posXY, pos)
 
     if distYZ == distXY:
-        pos += (steps[0], 0, steps[2])
+        cur_voxel += (steps[0], 0, steps[2])
+        pos = posYZ
     elif distYZ < distXY:
-        pos[0] += steps[0]
+        cur_voxel[0] += steps[0]
+        pos = posYZ
     else:
-        pos[2] += steps[2]
+        cur_voxel[2] += steps[2]
+        pos = posXY
 
-def xyzStep(pos, steps, start_pos, bnds, dds):
+def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
     y_by_z = dds[1] * (bnds[2] - start_pos[2]) + start_pos[1]
     z_by_x = dds[2] * (bnds[0] - start_pos[0]) + start_pos[2]
-    distXY = sqr_dist((x_by_z, y_by_z, bnds[2]), pos)
-    distYZ = sqr_dist((bnds[0], y_by_z, z_by_x), pos)
-    distXZ = sqr_dist((x_by_z, bnds[1], z_by_x), pos)
+    posXY = (x_by_z, y_by_z, bnds[2])
+    posYZ = (bnds[0], y_by_z, z_by_x)
+    posXZ = (x_by_z, bnds[1], z_by_x)
+    distXY = sqr_dist(posXY, pos)
+    distYZ = sqr_dist(posYZ, pos)
+    distXZ = sqr_dist(posXZ, pos)
 
     if (distXY == distYZ) and (distXY == distXZ):
-        pos += steps
+        cur_voxel += steps
+        pos = posXY
     elif distXY == distYZ:
         if distXY < distXZ:
-            pos += (steps[0], 0, steps[2])
-        else: pos[1] += steps[1]
+            cur_voxel += (steps[0], 0, steps[2])
+            pos = posXY
+        else:
+            cur_voxel[1] += steps[1]
+            pos = posXZ
     elif distYZ == distXZ:
         if distYZ < distXY:
-            pos += (steps[0], steps[1], 0)
-        else: pos[2] += steps[2]
+            cur_voxel += (steps[0], steps[1], 0)
+            pos = posYZ
+        else:
+            cur_voxel[2] += steps[2]
+            pos = posXY
     elif distXZ == distXY:
         if distXZ < distYZ:
-            pos += (0, steps[1], steps[2])
-        else: pos[0] += steps[0]
+            cur_voxel += (0, steps[1], steps[2])
+            pos = posXZ
+        else:
+            cur_voxel[0] += steps[0]
+            pos = posYZ
     elif (distXY < distYZ) and (distXY < distXZ):
-        pos[2] += steps[2]
+        cur_voxel[2] += steps[2]
+        pos = posXY
     elif (distYZ < distXY) and (distYZ < distXZ):
-        pos[0] += steps[0]
+        cur_voxel[0] += steps[0]
+        pos = posYZ
     else:
-        pos[1] += steps[1]
+        cur_voxel[1] += steps[1]
+        pos = posXZ
 
 def check_intersection(start_voxel, target_voxel, occupancy_grid):
     tmp = occupancy_grid[tuple(target_voxel)]
     occupancy_grid[tuple(target_voxel)] = 0
     intersect = False
     cur_voxel = np.copy(start_voxel)
+    pos = np.copy(start_voxel)
     dX = target_voxel[0] - start_voxel[0]
     dY = target_voxel[1] - start_voxel[1]
     dZ = target_voxel[2] - start_voxel[2]
@@ -120,9 +152,9 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
     else:
         step_fun = xyzStep
         dds = (dX/dZ, dY/dZ, dZ/dX)
-        
+    
     while (intersect == False) and (not np.array_equal(cur_voxel, target_voxel)):
-        step_fun(cur_voxel, steps, start_voxel, cur_voxel + B, dds)
+        step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
         if occupancy_grid[tuple(cur_voxel)]:
             intersect = True
     occupancy_grid[tuple(target_voxel)] = tmp

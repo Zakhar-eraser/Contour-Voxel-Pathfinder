@@ -120,8 +120,6 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
         pos = posXZ
 
 def check_intersection(start_voxel, target_voxel, occupancy_grid):
-    tmp = occupancy_grid[tuple(target_voxel)]
-    occupancy_grid[tuple(target_voxel)] = 0
     intersect = False
     cur_voxel = np.copy(start_voxel)
     pos = np.copy(start_voxel)
@@ -163,5 +161,4 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
         if occupancy_grid[tuple(cur_voxel)]:
             intersect = True
-    occupancy_grid[tuple(target_voxel)] = tmp
     return intersect

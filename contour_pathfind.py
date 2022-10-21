@@ -1,18 +1,12 @@
 import numpy as np
 import open3d as o3d
 import A_star_pathfinder as asp
+import open3d.visualization.gui as gui
+import visualizer
 
 input_path = 'monu2.ply'
 voxel_size = 1.0
 max_observe_dist = 20.0
-
-def pick_points(pcd):
-    vis = o3d.visualization.VisualizerWithEditing()
-    vis.create_window()
-    vis.add_geometry(pcd)
-    vis.run()
-    vis.destroy_window()
-    return vis.get_picked_points()
 
 def get_max_shape_idx(pcd):
     max_bound = pcd.get_max_bound()
@@ -53,20 +47,15 @@ def draw_route(voxel_grid, route, min_bound):
     o3d.visualization.draw_geometries([voxel_grid, line_set])
 
 def main():
+    app = gui.Application.instance
+    app.initialize()
     pcd = o3d.io.read_point_cloud(input_path)
-    mission_points_ids = list(set(pick_points(pcd)))
-    assert (len(mission_points_ids) == 2), "It must be exactly 2 picked points"
-    target_point = np.asarray(pcd.points)[mission_points_ids[0]]
-    start_point = np.asarray(pcd.points)[mission_points_ids[1]]
-
+    scene = visualizer.PointsSelectorApp(pcd)
+    app.run()
+    mission_points = scene.get_mission_points()
     pcd = pcd.voxel_down_sample(voxel_size)
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
-    target_voxel = voxel_grid.get_voxel(target_point)
-    start_voxel = voxel_grid.get_voxel(start_point)
-
-    start_voxel += 1
-    target_voxel += 1
     voxels = voxel_grid.get_voxels()
     shape = get_max_shape_idx(pcd)
     occupancy_grid = get_occupancy_grid(shape, voxels)

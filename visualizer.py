@@ -3,28 +3,17 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import open3d as o3d
 
-# This example displays a point cloud and if you Ctrl-click on a point
-# (Cmd-click on macOS) it will show the coordinates of the point.
-# This example illustrates:
-# - custom mouse handling on SceneWidget
-# - getting a the depth value of a point (OpenGL depth)
-# - converting from a window point + OpenGL depth to world coordinate
 class PointsSelectorApp:
 
     voxel_size = 1
 
     def __init__(self, cloud):
-        # We will create a SceneWidget that fills the entire window, and then
-        # a label in the lower left on top of the SceneWidget to display the
-        # coordinate.
         app = gui.Application.instance
         self.window = app.create_window("Select points", 1024, 768)
-        # Since we want the label on top of the scene, we cannot use a layout,
-        # so we need to manually layout the window's children.
         self.window.set_on_layout(self._on_layout)
         self.widget3d = gui.SceneWidget()
         self.window.add_child(self.widget3d)
-        self.info = gui.Label("Select target position")
+        self.info = gui.Label("Select start position")
         self.info.visible = True
         self.window.add_child(self.info)
 
@@ -32,9 +21,7 @@ class PointsSelectorApp:
 
         mat = rendering.MaterialRecord()
         mat.shader = "defaultUnlit"
-        # Point size is in native pixels, but "pixel" means different things to
-        # different platforms (macOS, in particular), so multiply by Window scale
-        # factor.
+
         mat.point_size = 3 * self.window.scaling
         self.widget3d.scene.add_geometry("Point Cloud", cloud, mat)
 
@@ -97,7 +84,10 @@ class PointsSelectorApp:
                 elif event.key == gui.KeyName.ENTER:
                     self.lock_geom = False
                     self.mission_points.append(box.get_center())
-                    self.info.text = "Select start position"
+                    if len(self.boxes) == 2:
+                        self.window.close()
+                        return gui.Widget.EventCallbackResult.IGNORED
+                    self.info.text = "Select target position"
                     self.window.set_needs_layout()
                 else:
                     return gui.Widget.EventCallbackResult.IGNORED
@@ -118,15 +108,14 @@ class PointsSelectorApp:
             def depth_callback(depth_image):
                 x = event.x - self.widget3d.frame.x
                 y = event.y - self.widget3d.frame.y
-                # Note that np.asarray() reverses the axes.
                 depth = np.asarray(depth_image)[y, x]
 
-                if depth == 1.0:  # clicked on nothing (i.e. the far plane)
+                if depth == 1.0:
                     return gui.Widget.EventCallbackResult.IGNORED
                 else:
-                    world = self.widget3d.scene.camera.unproject(
+                    world = np.around(self.widget3d.scene.camera.unproject(
                         event.x, event.y, depth, self.widget3d.frame.width,
-                        self.widget3d.frame.height)
+                        self.widget3d.frame.height))
                 
                 self.lock_geom = True
 

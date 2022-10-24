@@ -3,8 +3,9 @@ import open3d as o3d
 import A_star_pathfinder as asp
 import open3d.visualization.gui as gui
 import visualizer
+import map_manager as mm
 
-input_path = 'monu2.ply'
+input_path = 'campus - CloudClean.las'
 voxel_size = 1.0
 max_observe_dist = 20.0
 
@@ -44,11 +45,10 @@ def draw_route(voxel_grid, route, min_bound):
 def main():
     app = gui.Application.instance
     app.initialize()
-    pcd = o3d.io.read_point_cloud(input_path)
+    pcd = o3d.io.read_point_cloud(mm.create_project(input_path, voxel_size))
     scene = visualizer.PointsSelectorApp(pcd)
     app.run()
     mission_points = scene.get_mission_points()
-    pcd = pcd.voxel_down_sample(voxel_size)
     max_bound = pcd.get_max_bound()
     min_bound = pcd.get_min_bound()
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)

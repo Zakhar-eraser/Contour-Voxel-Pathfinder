@@ -2,3 +2,5 @@ __pycache__/
 *.ply
 *.vox
 test.py
+*.ply
+*.las

@@ -8,8 +8,8 @@ class Transfer(Enum):
 class Path:
     """Linked List with position and transfer type properties"""
 
-    def __init__(self, box, name):
-        self.box = box
+    def __init__(self, mark, name):
+        self.mark = mark
         self.name = name
         self.transfer = None
         self.target = None
@@ -17,4 +17,3 @@ class Path:
     def next(self, target, transfer):
         self.target = target
         self.target.transfer = transfer
-        return self.target

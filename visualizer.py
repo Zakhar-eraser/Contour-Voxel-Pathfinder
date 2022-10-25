@@ -69,55 +69,51 @@ class PointsSelectorApp:
             self.transfer_type = dl.Transfer.DESTINATE
 
     def _on_keyboard_widget3d(self, event):
-        if event.type == gui.KeyEvent.Type.DOWN and self.lock_geom and len(self.boxes):
+        if event.type == gui.KeyEvent.Type.DOWN and self.lock_geom:
             vs = PointsSelectorApp.voxel_size
             mat = rendering.MaterialRecord()
             mat.shader = "defaultLit"
-            if len(self.boxes) == 1:
-                name = "target"
-                box = self.boxes[0]
-            else:
-                name = "start"
-                box = self.boxes[1]
+            name = self.last_target.target.name
             
-            def move_box():
-                if event.key == gui.KeyName.W:
+            def update_gui():
+
+                if event.key == gui.KeyName.ENTER:
+                    self.lock_geom = False
+                    self.info.text = "Adding new target"
+                    geometry = o3d.geometry.LineSet(
+                        points=o3d.utility.Vector3dVector(
+                            (self.last_target.mark.get_center(),
+                             self.last_target.target.mark.get_center())),
+                        lines=o3d.utility.Vector2iVector((0, 1)))
+                    geometry.colors = o3d.utility.Vector3dVector((1, 0, 0))
+                    self.last_target = self.last_target.target
+                    name = self.last_target.name + "_line"
+                elif event.key == gui.KeyName.W:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((0, 0, vs))
-                    self.widget3d.scene.add_geometry(name, box, mat)
                 elif event.key == gui.KeyName.S:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((0, 0, -vs))
-                    self.widget3d.scene.add_geometry(name, box, mat)
                 elif event.key == gui.KeyName.LEFT:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((-vs, 0, 0))
-                    self.widget3d.scene.add_geometry(name, box, mat)
                 elif event.key == gui.KeyName.RIGHT:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((vs, 0, 0))
-                    self.widget3d.scene.add_geometry(name, box, mat)
                 elif event.key == gui.KeyName.UP:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((0, vs, 0))
-                    self.widget3d.scene.add_geometry(name, box, mat)
                 elif event.key == gui.KeyName.DOWN:
                     self.widget3d.scene.remove_geometry(name)
                     box.translate((0, -vs, 0))
-                    self.widget3d.scene.add_geometry(name, box, mat)
-                elif event.key == gui.KeyName.ENTER:
-                    self.lock_geom = False
-                    self.mission_points.append(box.get_center())
-                    if len(self.boxes) == 2:
-                        self.window.close()
-                        return gui.Widget.EventCallbackResult.IGNORED
-                    self.info.text = "Select target position"
-                    self.window.set_needs_layout()
                 else:
                     return gui.Widget.EventCallbackResult.IGNORED
+                
+                self.widget3d.scene.add_geometry(name, geometry, mat)
+                self.widget3d.scene.remove_geometry(name)
 
             gui.Application.instance.post_to_main_thread(
-                self.window, move_box)
+                self.window, update_gui)
             return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED
 
@@ -145,27 +141,33 @@ class PointsSelectorApp:
 
                 def update_geometries():
                     vs = PointsSelectorApp.voxel_size
-                    box = o3d.geometry.TriangleMesh.create_box(vs, vs, vs)
-                    box.compute_vertex_normals()
-                    box.translate(world - box.get_center())
+                    mark = o3d.geometry.TriangleMesh.create_sphere(vs / 2)
+                    mark.compute_vertex_normals()
+                    mark.translate(world - mark.get_center())
                     mat = rendering.MaterialRecord()
                     mat.shader = "defaultLit"
 
-                    if self.targets is not None:
-                        box.paint_uniform_color((0, 1, 0))
+                    if self.targets is None:
+                        mark.paint_uniform_color((0, 1, 0))
                         name = "start"
-                        self.last_target = self.targets = dl.Path(box, name)
-                    elif self.transfer_type == dl.Transfer.DESTINATE:
-                        box.paint_uniform_color((1, 0, 0))
-                        name = "dest_" + str(self.dest_count)
-                        self.dest_count += 1
-                        self.last_target
-
+                        self.last_target = self.targets = dl.Path(mark, name)
+                    else:
+                        if self.transfer_type == dl.Transfer.DESTINATE:
+                            mark_color = (1, 0, 0)
+                            name = "dest_" + str(self.dest_count)
+                            self.dest_count += 1
+                        else:
+                            mark_color = (0, 0, 1)
+                            name = "obs_" + str(self.dest_count)
+                            self.obs_count += 1
+                        
+                        mark.paint_uniform_color(mark_color)
+                        self.last_target.next(dl.Path(mark, name), self.transfer_type)
                     
                     self.info.text = "Move position"
                     self.window.set_needs_layout()
 
-                    self.widget3d.scene.add_geometry(name, box, mat)
+                    self.widget3d.scene.add_geometry(name, mark, mat)
 
                 gui.Application.instance.post_to_main_thread(
                     self.window, update_geometries)

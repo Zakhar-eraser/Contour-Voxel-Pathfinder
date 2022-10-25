@@ -10,8 +10,7 @@ class PointsSelectorApp:
 
     def __init__(self, cloud):
         app = gui.Application.instance
-        self.window = app.create_window("Select points", 1024, 768)
-        self.window.set_on_layout(self._on_layout)
+        self.window = app.create_window("Select points", 1024, 640)
         self.widget3d = gui.SceneWidget()
         self.window.add_child(self.widget3d)
         self.info = gui.Label("Select start position")
@@ -25,11 +24,12 @@ class PointsSelectorApp:
             0, gui.Margins(0.25 * em, 0.25 * em, 0.25 * em, 0.25 * em))
         
         # adding checkbox on gui`s panel
-        self._show_skybox = gui.Checkbox("Stop when observable")
-        self._show_skybox.set_on_checked(self._on_chekbox)
+        self._checkbox = gui.Checkbox("Stop when observable")
+        self._checkbox.set_on_checked(self._on_checkbox)
         self._settings_panel.add_fixed(separation_height)
-        self._settings_panel.add_child(self._show_skybox)
+        self._settings_panel.add_child(self._checkbox)
         self.window.add_child(self._settings_panel)
+        self.window.set_on_layout(self._on_layout)
 
         self.widget3d.scene = rendering.Open3DScene(self.window.renderer)
         self.widget3d.scene.set_background((0.8, 0.6, 0.6, 1))
@@ -52,65 +52,77 @@ class PointsSelectorApp:
         self.lock_geom = False
         self.dest_count = 0
         self.obs_count = 0
-
+    
     def _on_layout(self, layout_context):
         r = self.window.content_rect
         self.widget3d.frame = r
         pref = self.info.calc_preferred_size(layout_context,
                                              gui.Widget.Constraints())
+        
         self.info.frame = gui.Rect(r.x,
                                    r.get_bottom() - pref.height, pref.width,
                                    pref.height)
+        
+        width = 17 * layout_context.theme.font_size
+        height = min(
+            r.height,
+            self._settings_panel.calc_preferred_size(
+                layout_context, gui.Widget.Constraints()).height)
+        self._settings_panel.frame = gui.Rect(r.get_right() - width, r.y, width,
+                                              height)
     
-    def _on_checkbox(self):
-        if self.transfer_type == dl.Transfer.DESTINATE:
+    def _on_checkbox(self, show):
+        if show:
             self.transfer_type = dl.Transfer.OBSERVE
         else:
             self.transfer_type = dl.Transfer.DESTINATE
 
     def _on_keyboard_widget3d(self, event):
-        if event.type == gui.KeyEvent.Type.DOWN and self.lock_geom:
+        if event.type == gui.KeyEvent.Type.DOWN and (
+            self.lock_geom) and (
+            self.last_target is not None) and (
+                self.last_target.target is not None):
             vs = PointsSelectorApp.voxel_size
             mat = rendering.MaterialRecord()
             mat.shader = "defaultLit"
             name = self.last_target.target.name
             
-            def update_gui():
-
-                if event.key == gui.KeyName.ENTER:
+            def update_gui(name = name):
+                if event.key == gui.BACKSPACE:
                     self.lock_geom = False
-                    self.info.text = "Adding new target"
-                    geometry = o3d.geometry.LineSet(
-                        points=o3d.utility.Vector3dVector(
-                            (self.last_target.mark.get_center(),
-                             self.last_target.target.mark.get_center())),
-                        lines=o3d.utility.Vector2iVector((0, 1)))
-                    geometry.colors = o3d.utility.Vector3dVector((1, 0, 0))
-                    self.last_target = self.last_target.target
-                    name = self.last_target.name + "_line"
-                elif event.key == gui.KeyName.W:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((0, 0, vs))
-                elif event.key == gui.KeyName.S:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((0, 0, -vs))
-                elif event.key == gui.KeyName.LEFT:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((-vs, 0, 0))
-                elif event.key == gui.KeyName.RIGHT:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((vs, 0, 0))
-                elif event.key == gui.KeyName.UP:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((0, vs, 0))
-                elif event.key == gui.KeyName.DOWN:
-                    self.widget3d.scene.remove_geometry(name)
-                    box.translate((0, -vs, 0))
+                    self.widget3d.scene.remove_geometry(name + "_line")
+                    self.last_target = self.last_target.origin
                 else:
-                    return gui.Widget.EventCallbackResult.IGNORED
-                
-                self.widget3d.scene.add_geometry(name, geometry, mat)
-                self.widget3d.scene.remove_geometry(name)
+                    if event.key == gui.KeyName.ENTER:
+                        self.lock_geom = False
+                        self.info.text = "Adding new target"
+                        geometry = o3d.geometry.LineSet(
+                            points=o3d.utility.Vector3dVector(
+                                (self.last_target.mark.get_center(),
+                                 self.last_target.origin.mark.get_center())),
+                            lines=o3d.utility.Vector2iVector((0, 1)))
+                        geometry.colors = o3d.utility.Vector3dVector((1, 0, 0))
+                        name += "_line"
+                    else:
+                        geometry = self.last_target.mark
+                        name = self.last_target.name
+                        if event.key == gui.KeyName.W:
+                            geometry.translate((0, 0, vs))
+                        elif event.key == gui.KeyName.S:
+                            geometry.translate((0, 0, -vs))
+                        elif event.key == gui.KeyName.LEFT:
+                            geometry.translate((-vs, 0, 0))
+                        elif event.key == gui.KeyName.RIGHT:
+                            geometry.translate((vs, 0, 0))
+                        elif event.key == gui.KeyName.UP:
+                            geometry.translate((0, vs, 0))
+                        elif event.key == gui.KeyName.DOWN:
+                            geometry.translate((0, -vs, 0))
+                        else:
+                            return gui.Widget.EventCallbackResult.IGNORED
+
+                    self.widget3d.scene.remove_geometry(name)
+                    self.widget3d.scene.add_geometry(name, geometry, mat)
 
             gui.Application.instance.post_to_main_thread(
                 self.window, update_gui)
@@ -162,7 +174,7 @@ class PointsSelectorApp:
                             self.obs_count += 1
                         
                         mark.paint_uniform_color(mark_color)
-                        self.last_target.next(dl.Path(mark, name), self.transfer_type)
+                        self.last_target = self.last_target.next(dl.Path(mark, name), self.transfer_type)
                     
                     self.info.text = "Move position"
                     self.window.set_needs_layout()

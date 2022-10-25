@@ -5,7 +5,7 @@ import open3d.visualization.gui as gui
 import visualizer
 import map_manager as mm
 
-input_path = 'campus - CloudClean sub.ply'
+input_path = 'monu2.ply'
 voxel_size = 1.0
 
 def get_max_shape_idx(min_bound, max_bound):

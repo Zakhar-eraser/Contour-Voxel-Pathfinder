@@ -13,7 +13,10 @@ class Path:
         self.name = name
         self.transfer = None
         self.target = None
+        self.origin = None
     
-    def next(self, target, transfer):
+    def add(self, target, transfer):
         self.target = target
         self.target.transfer = transfer
+        self.target.origin = self
+        return self.target

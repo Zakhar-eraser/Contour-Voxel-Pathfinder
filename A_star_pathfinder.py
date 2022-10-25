@@ -1,4 +1,4 @@
-from math import dist
+from shutil import move
 import numpy as np
 from queue import PriorityQueue
 import voxel_raycast as vr
@@ -6,6 +6,7 @@ import voxel_raycast as vr
 voxel_step_cost = 1.0
 obstacle_cost = 2.0
 obstacle_check_depth = 0
+observation_range = 40
 
 class Node:
     """Interface to work numpy array with PriorityQueue"""
@@ -45,7 +46,6 @@ def get_neighbours_occupancy(local_grid):
                     local_grid[tuple(n1 + n3 + 1)] or\
                     local_grid[tuple(n2 + n3 + 1)]:
                     local_grid[tuple(n1 + n2 + n3 + 1)] = 1
-    #print(local_grid)
     return local_grid
 
 def get_neighbours(grid, idx):
@@ -61,11 +61,14 @@ def get_neighbours(grid, idx):
                     nbrs.append(np.array(local_idx) - 1 + idx)
     return nbrs
 
+def sqr_dist(v1, v2):
+    return np.sum(np.square(v1 - v2))
+
 def manh_dist(v1, v2):
     return np.sum(np.abs(v1 - v2))
 
 def heuristics(cur, end):
-    return manh_dist(cur, end)
+    return 0.8 * manh_dist(cur, end)
 
 def obstacle_closeness(grid, idx):
     for depth in range(1, obstacle_check_depth + 1):
@@ -90,16 +93,35 @@ def obstacle_closeness(grid, idx):
 
     return 100
 
-def get_cost(grid, current, next):
-    dist_cost = manh_dist(current, next)
+def plane_priority_cost(cur, next):
+    moves = np.abs(cur - next)
+    dist_cost = 1.4 if moves[0] and moves[1] else 1 if moves[0] or moves[1] else 0
+    if moves[2]: dist_cost += 2
+    return dist_cost
+
+def euclidian_cost(cur, next):
+    dist_cost = manh_dist(cur, next)
     dist_cost = 1 if dist_cost == 1 else 1.4 if dist_cost == 2 else 1.7
+    return dist_cost
+
+def get_cost(grid, current, next, move_cost):
+    dist_cost = move_cost(current, next)
 
     obst_cost = obstacle_cost / obstacle_closeness(grid, next)
 
     cost = dist_cost + obst_cost
     return cost
 
-def find_path_A_star(grid, start, end):
+def same_point_cond(current, target, grid):
+    return np.array_equal(current, target)
+
+def visibility_cond(current, target, grid):
+    return observation_range * observation_range > sqr_dist(current, target) and (
+        not vr.check_intersection(current, target, grid))
+
+def find_path_A_star(grid, start, end,
+    stop_cond = same_point_cond,
+    move_cost = euclidian_cost):
     frontier = PriorityQueue()
     frontier.put((0, Node(start, 0)))
     costs = {tuple(start): 0.0}
@@ -108,17 +130,17 @@ def find_path_A_star(grid, start, end):
     while not frontier.empty():
         current = frontier.get()[1].idx
 
-        if not vr.check_intersection(current, end, grid):
+        if stop_cond(current, end, grid):
             parents[tuple(end)] = current
             break
         
         nbrs = get_neighbours(grid, current)
         for next in nbrs:
-            new_cost = costs[tuple(current)] + get_cost(grid, current, next)
+            new_cost = costs[tuple(current)] + get_cost(grid, current, next, move_cost)
             if (tuple(next) not in costs) or (new_cost < costs[tuple(next)]):
                 parents[tuple(next)] = current
                 costs[tuple(next)] = new_cost
-                next_node = Node(next, new_cost + 0.5 * heuristics(next, end))
+                next_node = Node(next, new_cost + heuristics(next, end))
                 frontier.put((next_node.priority, next_node))
     
     return parents

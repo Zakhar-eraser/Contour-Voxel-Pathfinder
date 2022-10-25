@@ -2,6 +2,7 @@ import numpy as np
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import open3d as o3d
+import destination_list as dl
 
 class PointsSelectorApp:
 
@@ -17,12 +18,26 @@ class PointsSelectorApp:
         self.info.visible = True
         self.window.add_child(self.info)
 
+        # Setting gui`s panel
+        em = self.window.theme.font_size
+        separation_height = int(round(0.5 * em))
+        self._settings_panel = gui.Vert(
+            0, gui.Margins(0.25 * em, 0.25 * em, 0.25 * em, 0.25 * em))
+        
+        # adding checkbox on gui`s panel
+        self._show_skybox = gui.Checkbox("Stop when observable")
+        self._show_skybox.set_on_checked(self._on_chekbox)
+        self._settings_panel.add_fixed(separation_height)
+        self._settings_panel.add_child(self._show_skybox)
+        self.window.add_child(self._settings_panel)
+
         self.widget3d.scene = rendering.Open3DScene(self.window.renderer)
+        self.widget3d.scene.set_background((0.8, 0.6, 0.6, 1))
 
         mat = rendering.MaterialRecord()
         mat.shader = "defaultUnlit"
 
-        mat.point_size = 3 * self.window.scaling
+        mat.point_size = 6 * self.window.scaling
         self.widget3d.scene.add_geometry("Point Cloud", cloud, mat)
 
         bounds = self.widget3d.scene.bounding_box
@@ -31,9 +46,12 @@ class PointsSelectorApp:
 
         self.widget3d.set_on_mouse(self._on_mouse_widget3d)
         self.widget3d.set_on_key(self._on_keyboard_widget3d)
-        self.boxes = list()
-        self.mission_points = list()
+        self.targets = None
+        self.last_target = None
+        self.transfer_type = dl.Transfer.DESTINATE
         self.lock_geom = False
+        self.dest_count = 0
+        self.obs_count = 0
 
     def _on_layout(self, layout_context):
         r = self.window.content_rect
@@ -43,6 +61,12 @@ class PointsSelectorApp:
         self.info.frame = gui.Rect(r.x,
                                    r.get_bottom() - pref.height, pref.width,
                                    pref.height)
+    
+    def _on_checkbox(self):
+        if self.transfer_type == dl.Transfer.DESTINATE:
+            self.transfer_type = dl.Transfer.OBSERVE
+        else:
+            self.transfer_type = dl.Transfer.DESTINATE
 
     def _on_keyboard_widget3d(self, event):
         if event.type == gui.KeyEvent.Type.DOWN and self.lock_geom and len(self.boxes):
@@ -126,16 +150,21 @@ class PointsSelectorApp:
                     box.translate(world - box.get_center())
                     mat = rendering.MaterialRecord()
                     mat.shader = "defaultLit"
-                    if len(self.boxes) == 0:
-                        box.paint_uniform_color((1, 0, 0))
-                        name = "target"
-                    else:
-                        box.paint_uniform_color((0, 0, 1))
+
+                    if self.targets is not None:
+                        box.paint_uniform_color((0, 1, 0))
                         name = "start"
+                        self.last_target = self.targets = dl.Path(box, name)
+                    elif self.transfer_type == dl.Transfer.DESTINATE:
+                        box.paint_uniform_color((1, 0, 0))
+                        name = "dest_" + str(self.dest_count)
+                        self.dest_count += 1
+                        self.last_target
+
                     
                     self.info.text = "Move position"
                     self.window.set_needs_layout()
-                    self.boxes.append(box)
+
                     self.widget3d.scene.add_geometry(name, box, mat)
 
                 gui.Application.instance.post_to_main_thread(

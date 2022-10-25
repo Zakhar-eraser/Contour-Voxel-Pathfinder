@@ -5,9 +5,8 @@ import open3d.visualization.gui as gui
 import visualizer
 import map_manager as mm
 
-input_path = 'campus - CloudClean.las'
+input_path = 'campus - CloudClean sub.ply'
 voxel_size = 1.0
-max_observe_dist = 20.0
 
 def get_max_shape_idx(min_bound, max_bound):
     shape = (max_bound - min_bound) / voxel_size + 1
@@ -61,7 +60,7 @@ def main():
     occupancy_grid[tuple(target_voxel)] = 0
     occupancy_grid[tuple(start_voxel)] = 0
 
-    graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel)
+    graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, asp.visibility_cond)
     route = asp.get_route_idx(graph, target_voxel)
     draw_route(voxel_grid, route, min_bound)
 

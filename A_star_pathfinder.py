@@ -4,7 +4,7 @@ from queue import PriorityQueue
 import voxel_raycast as vr
 
 voxel_step_cost = 1.0
-obstacle_cost = 2.0
+obstacle_cost = 10.0
 obstacle_check_depth = 0
 observation_range = 40
 
@@ -67,8 +67,8 @@ def sqr_dist(v1, v2):
 def manh_dist(v1, v2):
     return np.sum(np.abs(v1 - v2))
 
-def heuristics(cur, end):
-    return 0.8 * manh_dist(cur, end)
+def heuristics(move_priority, cur, next, end):
+    return manh_dist(cur, end) + move_priority(cur, next)
 
 def obstacle_closeness(grid, idx):
     for depth in range(1, obstacle_check_depth + 1):
@@ -91,25 +91,24 @@ def obstacle_closeness(grid, idx):
                         if grid[tuple(idx + np.roll((i, j, k), shift))]:
                             return depth
 
-    return 100
+    return obstacle_check_depth
 
-def plane_priority_cost(cur, next):
+def plane_move_priority(cur, next):
     moves = np.abs(cur - next)
     dist_cost = 1.4 if moves[0] and moves[1] else 1 if moves[0] or moves[1] else 0
     if moves[2]: dist_cost += 2
     return dist_cost
 
-def euclidian_cost(cur, next):
+def euclidian_priority(cur, next):
     dist_cost = manh_dist(cur, next)
     dist_cost = 1 if dist_cost == 1 else 1.4 if dist_cost == 2 else 1.7
     return dist_cost
 
-def get_cost(grid, current, next, move_cost):
-    dist_cost = move_cost(current, next)
+def get_cost(grid, vox):
+    obst_cost = obstacle_cost * (obstacle_check_depth -
+        obstacle_closeness(grid, vox))
 
-    obst_cost = obstacle_cost / obstacle_closeness(grid, next)
-
-    cost = dist_cost + obst_cost
+    cost = obst_cost + 1
     return cost
 
 def same_point_cond(current, target, grid):
@@ -121,7 +120,7 @@ def visibility_cond(current, target, grid):
 
 def find_path_A_star(grid, start, end,
     stop_cond = same_point_cond,
-    move_cost = euclidian_cost):
+    move_priority = euclidian_priority):
     frontier = PriorityQueue()
     frontier.put((0, Node(start, 0)))
     costs = {tuple(start): 0.0}
@@ -136,11 +135,11 @@ def find_path_A_star(grid, start, end,
         
         nbrs = get_neighbours(grid, current)
         for next in nbrs:
-            new_cost = costs[tuple(current)] + get_cost(grid, current, next, move_cost)
+            new_cost = costs[tuple(current)] + get_cost(grid, next)
             if (tuple(next) not in costs) or (new_cost < costs[tuple(next)]):
                 parents[tuple(next)] = current
                 costs[tuple(next)] = new_cost
-                next_node = Node(next, new_cost + heuristics(next, end))
+                next_node = Node(next, new_cost + heuristics(move_priority, current, next, end))
                 frontier.put((next_node.priority, next_node))
     
     return parents

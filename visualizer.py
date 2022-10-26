@@ -78,31 +78,28 @@ class PointsSelectorApp:
             self.transfer_type = dl.Transfer.DESTINATE
 
     def _on_keyboard_widget3d(self, event):
-        if event.type == gui.KeyEvent.Type.DOWN and (
-            self.lock_geom) and (
-            self.last_target is not None) and (
-                self.last_target.target is not None):
-            vs = PointsSelectorApp.voxel_size
-            mat = rendering.MaterialRecord()
-            mat.shader = "defaultLit"
-            name = self.last_target.target.name
-            
-            def update_gui(name = name):
-                if event.key == gui.BACKSPACE:
-                    self.lock_geom = False
-                    self.widget3d.scene.remove_geometry(name + "_line")
-                    self.last_target = self.last_target.origin
-                else:
+        if event.type == gui.KeyEvent.Type.DOWN:
+            if self.lock_geom:
+                vs = PointsSelectorApp.voxel_size
+                mat = rendering.MaterialRecord()
+                mat.shader = "defaultLit"
+
+                def update_gui():
+                    name = self.last_target.name
                     if event.key == gui.KeyName.ENTER:
                         self.lock_geom = False
                         self.info.text = "Adding new target"
-                        geometry = o3d.geometry.LineSet(
-                            points=o3d.utility.Vector3dVector(
-                                (self.last_target.mark.get_center(),
-                                 self.last_target.origin.mark.get_center())),
-                            lines=o3d.utility.Vector2iVector((0, 1)))
-                        geometry.colors = o3d.utility.Vector3dVector((1, 0, 0))
-                        name += "_line"
+                        if self.last_target.origin is not None:
+                            geometry = o3d.geometry.LineSet(
+                                points=o3d.utility.Vector3dVector(
+                                    (self.last_target.mark.get_center(),
+                                     self.last_target.origin.mark.get_center())),
+                                lines=o3d.utility.Vector2iVector([[0, 1]]))
+                            geometry.colors = o3d.utility.Vector3dVector([[1, 0, 0]])
+                            name += "_line"
+                        else:
+                            geometry = self.targets.mark
+                            name = self.targets.name
                     else:
                         geometry = self.last_target.mark
                         name = self.last_target.name
@@ -120,13 +117,23 @@ class PointsSelectorApp:
                             geometry.translate((0, -vs, 0))
                         else:
                             return gui.Widget.EventCallbackResult.IGNORED
-
-                    self.widget3d.scene.remove_geometry(name)
+                        self.widget3d.scene.remove_geometry(name)
                     self.widget3d.scene.add_geometry(name, geometry, mat)
 
-            gui.Application.instance.post_to_main_thread(
-                self.window, update_gui)
-            return gui.Widget.EventCallbackResult.HANDLED
+                gui.Application.instance.post_to_main_thread(
+                    self.window, update_gui)
+                return gui.Widget.EventCallbackResult.HANDLED
+            else:
+                def update_gui():
+                    if event.key == gui.BACKSPACE and self.last_target.origin is not None:
+                        self.widget3d.scene.remove_geometry(self.last_target.name + "_line")
+                        self.widget3d.scene.remove_geometry(self.last_target.name)
+                        self.last_target = self.last_target.origin
+                    else:
+                        return gui.Widget.EventCallbackResult.IGNORED 
+                gui.Application.instance.post_to_main_thread(
+                    self.window, update_gui)
+                return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED
 
 
@@ -149,7 +156,6 @@ class PointsSelectorApp:
                         event.x, event.y, depth, self.widget3d.frame.width,
                         self.widget3d.frame.height))
                 
-                self.lock_geom = True
 
                 def update_geometries():
                     vs = PointsSelectorApp.voxel_size
@@ -170,11 +176,11 @@ class PointsSelectorApp:
                             self.dest_count += 1
                         else:
                             mark_color = (0, 0, 1)
-                            name = "obs_" + str(self.dest_count)
+                            name = "obs_" + str(self.obs_count)
                             self.obs_count += 1
                         
                         mark.paint_uniform_color(mark_color)
-                        self.last_target = self.last_target.next(dl.Path(mark, name), self.transfer_type)
+                        self.last_target = self.last_target.add(dl.Path(mark, name), self.transfer_type)
                     
                     self.info.text = "Move position"
                     self.window.set_needs_layout()
@@ -184,9 +190,8 @@ class PointsSelectorApp:
                 gui.Application.instance.post_to_main_thread(
                     self.window, update_geometries)
 
+                self.lock_geom = True
+
             self.widget3d.scene.scene.render_to_depth_image(depth_callback)
             return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED
-    
-    def get_mission_points(self):
-        return self.mission_points

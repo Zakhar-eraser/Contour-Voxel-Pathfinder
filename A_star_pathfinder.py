@@ -51,6 +51,7 @@ def get_neighbours_occupancy(local_grid):
 def get_neighbours(grid, idx):
     local_grid = np.copy(
         grid[idx[0] - 1:idx[0] + 2, idx[1] - 1:idx[1] + 2, idx[2] - 1:idx[2] + 2])
+    #print(local_grid)
     nbrs_grid = get_neighbours_occupancy(local_grid)
     nbrs = list()
     for x in range(3):
@@ -130,7 +131,8 @@ def find_path_A_star(grid, start, end,
         current = frontier.get()[1].idx
 
         if stop_cond(current, end, grid):
-            parents[tuple(end)] = current
+            if not np.array_equal(current, end):
+                parents[tuple(end)] = current
             break
         
         nbrs = get_neighbours(grid, current)

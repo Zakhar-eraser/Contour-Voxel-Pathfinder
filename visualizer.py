@@ -161,7 +161,7 @@ class PointsSelectorApp:
                     vs = PointsSelectorApp.voxel_size
                     mark = o3d.geometry.TriangleMesh.create_sphere(vs / 2)
                     mark.compute_vertex_normals()
-                    mark.translate(world - mark.get_center())
+                    mark.translate(world)
                     mat = rendering.MaterialRecord()
                     mat.shader = "defaultLit"
 

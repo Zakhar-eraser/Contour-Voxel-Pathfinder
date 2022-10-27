@@ -6,7 +6,7 @@ import visualizer
 import map_manager as mm
 import destination_list as dl
 
-input_path = 'monu2.ply'
+input_path = 'lidar_data/lidars/terra_las/cloud2dfa7db512d9b041.las'
 voxel_size = 1.0
 
 def get_max_shape_idx(min_bound, max_bound):
@@ -30,8 +30,8 @@ def get_occupancy_grid(shape, voxels):
         grid[tuple(vox.grid_index + 1)] = 1
     return grid
 
-def make_route(route, min_bound, last_color):
-    points = route * voxel_size + min_bound
+def make_route_lines(route, last_color):
+    points = route * voxel_size
     lines = np.arange(len(points) - 1)[:, np.newaxis]
     lines = np.concatenate((lines, lines + 1), axis=1)
     colors = [[1, 0, 0] for i in range(len(lines) - 1)]
@@ -45,7 +45,8 @@ def make_route(route, min_bound, last_color):
 def main():
     app = gui.Application.instance
     app.initialize()
-    pcd = o3d.io.read_point_cloud(mm.create_project(input_path, voxel_size))
+    project_dir = mm.create_project(input_path, voxel_size)
+    pcd = o3d.io.read_point_cloud(project_dir + mm.pc_name)
     scene = visualizer.PointsSelectorApp(pcd)
     app.run()
     position = scene.targets
@@ -79,12 +80,12 @@ def main():
         occupancy_grid[tuple(start_voxel)] = occupancy_grid[tuple(target_voxel)] = 0
         graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop, mp)
         occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
-        route = asp.get_route_idx(graph, target_voxel)
-        line_sets += [make_route(route, min_bound, last_color)]
+        route = asp.get_route(graph, min_bound, target_voxel)
+        mm.write_waypoints(project_dir, position.target.mark.name + "_route", route)
+        line_sets += [make_route_lines(route, last_color)]
         position = position.target
 
     o3d.visualization.draw_geometries([voxel_grid] + line_sets + marks)
-
 
 if __name__ == '__main__':
     main()

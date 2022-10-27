@@ -1,4 +1,3 @@
-from shutil import move
 import numpy as np
 from queue import PriorityQueue
 import voxel_raycast as vr
@@ -146,12 +145,12 @@ def find_path_A_star(grid, start, end,
     
     return parents
 
-def get_route_idx(graph, end):
+def get_route_idx(graph, min_bound, end):
     cur = end
     route = list()
     while graph[tuple(cur)] is not None:
         route.append(cur)
         cur = graph[tuple(cur)]
     route.append(cur)
-    return np.array(route, dtype=np.int32) - 1
+    return np.array(route) - 1 + min_bound
    

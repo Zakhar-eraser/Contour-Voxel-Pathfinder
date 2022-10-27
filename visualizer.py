@@ -41,7 +41,9 @@ class PointsSelectorApp:
         self.widget3d.scene.add_geometry("Point Cloud", cloud, mat)
 
         bounds = self.widget3d.scene.bounding_box
-        center = bounds.get_center()
+        #center = bounds.get_center()
+        #bounds = cloud.get_axis_aligned_bounding_box()
+        center = cloud.get_center()
         self.widget3d.setup_camera(60, bounds, center)
 
         self.widget3d.set_on_mouse(self._on_mouse_widget3d)

@@ -6,7 +6,7 @@ import visualizer
 import map_manager as mm
 import destination_list as dl
 
-input_path = 'lidar_data/lidars/terra_las/cloud2dfa7db512d9b041.las'
+input_path = 'cloud2dfa7db512d9b041 - Cloud.ply'
 voxel_size = 1.0
 
 def get_max_shape_idx(min_bound, max_bound):
@@ -46,12 +46,13 @@ def main():
     app = gui.Application.instance
     app.initialize()
     project_dir = mm.create_project(input_path, voxel_size)
-    pcd = o3d.io.read_point_cloud(project_dir + mm.pc_name)
+    pcd = o3d.io.read_point_cloud(project_dir + mm.pc_file)
+    max_bound = pcd.get_max_bound()
+    min_bound = pcd.get_min_bound()
+    shift = mm.get_map_shift(project_dir)
     scene = visualizer.PointsSelectorApp(pcd)
     app.run()
     position = scene.targets
-    max_bound = pcd.get_max_bound()
-    min_bound = pcd.get_min_bound()
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
     voxels = voxel_grid.get_voxels()
@@ -81,7 +82,8 @@ def main():
         graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop, mp)
         occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
         route = asp.get_route(graph, min_bound, target_voxel)
-        mm.write_waypoints(project_dir, position.target.mark.name + "_route", route)
+        mm.write_waypoints(project_dir, position.target.name + "_route"
+            , route + shift)
         line_sets += [make_route_lines(route, last_color)]
         position = position.target
 

@@ -54,5 +54,6 @@ def write_waypoints(path, name, route):
         pos = route[i]
         latlon = utm.to_latlon(pos[0], pos[1], 37, 'N')
         file.write(f"{counter}\t0\t3\t16\t0\t0\t0\t0\t{latlon[0]}\t{latlon[1]}\t{pos[2]}\t1\n")
-    file.write(f"1\t0\t3\t21\t0\t0\t0\t0\t{last_latlon[0]}\t{last_latlon[1]}\t{first[2]}\t1\n")
+        counter += 1
+    file.write(f"{counter}\t0\t3\t21\t0\t0\t0\t0\t{last_latlon[0]}\t{last_latlon[1]}\t{first[2]}\t1\n")
     file.close()

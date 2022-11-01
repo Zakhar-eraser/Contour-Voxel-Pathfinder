@@ -152,10 +152,9 @@ class PointsSelectorApp:
                 if depth == 1.0:
                     return gui.Widget.EventCallbackResult.IGNORED
                 else:
-                    world = np.around(self.widget3d.scene.camera.unproject(
+                    world = self.widget3d.scene.camera.unproject(
                         event.x, event.y, depth, self.widget3d.frame.width,
-                        self.widget3d.frame.height))
-                
+                        self.widget3d.frame.height)               
 
                 def update_geometries():
                     vs = PointsSelectorApp.voxel_size

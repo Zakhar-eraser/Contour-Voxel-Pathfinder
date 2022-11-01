@@ -15,7 +15,7 @@ def get_max_shape_idx(min_bound, max_bound):
     return shape
 
 def pos_to_idx(min_bound, pos):
-    return ((pos - min_bound) / voxel_size).astype('int32') + 1
+    return np.around((pos - min_bound) / voxel_size).astype('int32')
 
 def get_occupancy_grid(shape, voxels):
     grid = np.zeros(tuple(shape + 2), dtype=np.int8)
@@ -66,7 +66,7 @@ def main():
         marks += [position.target.mark]
         if position.target.transfer == dl.Transfer.DESTINATE:
             stop = asp.same_point_cond
-            mp = asp.euclidian_priority
+            mp = lambda c, n: 0
             last_color = [1, 0, 0]
         else:
             stop = asp.visibility_cond
@@ -82,8 +82,8 @@ def main():
         graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop, mp)
         occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
         route = asp.get_route(graph, min_bound, target_voxel)
-        mm.write_waypoints(project_dir, position.target.name + "_route"
-            , route + shift)
+        #mm.write_waypoints(project_dir, position.target.name + "_route"
+        #    , route + shift)
         line_sets += [make_route_lines(route, last_color)]
         position = position.target
 

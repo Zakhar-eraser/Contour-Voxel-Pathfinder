@@ -2,7 +2,7 @@ import numpy as np
 from queue import PriorityQueue
 import voxel_raycast as vr
 
-voxel_step_cost = 1.0
+height_step_priority = 1
 obstacle_cost = 10.0
 obstacle_check_depth = 0
 observation_range = 40
@@ -13,6 +13,9 @@ class Node:
     def __init__(self, idx, priority):
         self.idx = idx
         self.priority = priority
+    
+    def __repr__(self) -> str:
+        return str((self.priority, self.idx))
 
     def __eq__(self, other):
         return self.priority == other.priority
@@ -68,7 +71,7 @@ def manh_dist(v1, v2):
     return np.sum(np.abs(v1 - v2))
 
 def heuristics(move_priority, cur, next, end):
-    return manh_dist(cur, end) + move_priority(cur, next)
+    return manh_dist(next, end) + move_priority(cur, next)
 
 def obstacle_closeness(grid, idx):
     for depth in range(1, obstacle_check_depth + 1):
@@ -95,14 +98,7 @@ def obstacle_closeness(grid, idx):
 
 def plane_move_priority(cur, next):
     moves = np.abs(cur - next)
-    dist_cost = 1.4 if moves[0] and moves[1] else 1 if moves[0] or moves[1] else 0
-    if moves[2]: dist_cost += 2
-    return dist_cost
-
-def euclidian_priority(cur, next):
-    dist_cost = manh_dist(cur, next)
-    dist_cost = 1 if dist_cost == 1 else 1.4 if dist_cost == 2 else 1.7
-    return dist_cost
+    return moves[2] * height_step_priority
 
 def get_cost(grid, vox):
     obst_cost = obstacle_cost * (obstacle_check_depth -
@@ -120,7 +116,7 @@ def visibility_cond(current, target, grid):
 
 def find_path_A_star(grid, start, end,
     stop_cond = same_point_cond,
-    move_priority = euclidian_priority):
+    move_priority = lambda c, n: 0):
     frontier = PriorityQueue()
     frontier.put((0, Node(start, 0)))
     costs = {tuple(start): 0.0}
@@ -152,5 +148,5 @@ def get_route(graph, min_bound, end):
         route.append(cur)
         cur = graph[tuple(cur)]
     route.append(cur)
-    return np.array(route) + min_bound
+    return np.array(route) + min_bound  # Use min_voxel instead point
    

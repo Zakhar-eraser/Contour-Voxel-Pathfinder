@@ -1,10 +1,10 @@
 import numpy as np
 import open3d as o3d
-import A_star_pathfinder as asp
+import pathfinder.A_star_pathfinder as asp
 import open3d.visualization.gui as gui
-import visualizer
-import map_manager as mm
-import destination_list as dl
+import visualizer.visualizer as visualizer
+import utils.map_manager as mm
+import structures.destination_list as dl
 
 input_path = 'cloud2dfa7db512d9b041 - Cloud.ply'
 voxel_size = 1.0

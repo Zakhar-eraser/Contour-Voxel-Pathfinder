@@ -1,16 +1,16 @@
 import numpy as np
-#import laspy as lp
 import open3d as o3d
 import os
 import utm
-import copy
+import pickle
 
 maps_dir = "maps/"
 missions_dir = "missions/"
 mission_prefix = "mission_"
 
 pc_file = "map.ply"
-pc_shift_file = "map.sft"
+pc_info_file = "map.info"
+map_occupancy_grid = "occupancy.grid"
 
 def create_project(path, voxel_size):
     filename = os.path.splitext(os.path.basename(path))[0]
@@ -19,20 +19,22 @@ def create_project(path, voxel_size):
     project_dir = maps_dir + filename + '/'
     if not os.path.exists(project_dir):
         os.mkdir(project_dir)
-        #lp_pcd = lp.read(path)
-        #pcd = o3d.geometry.PointCloud()
-        #pcd.points = o3d.utility.Vector3dVector(np.vstack((lp_pcd.X, lp_pcd.Y, lp_pcd.Z)).transpose())
-        #pcd.colors = o3d.utility.Vector3dVector(np.vstack((lp_pcd.red, lp_pcd.green, lp_pcd.blue)).transpose()/65535)
         pcd = o3d.io.read_point_cloud(path)
         pcd_center = pcd.get_center()
-        np.savetxt(project_dir + pc_shift_file, pcd_center)
+        np.savetxt(project_dir + pc_info_file, pcd_center)
+        info_file = open(project_dir + pc_info_file, 'r')
+        
+        info_file.close()
         pcd = pcd.translate((0, 0, 0), relative=False)
         pcd = pcd.voxel_down_sample(voxel_size)
         o3d.io.write_point_cloud(project_dir + pc_file, pcd)
     return project_dir
 
 def get_map_shift(path):
-    return np.loadtxt(path + pc_shift_file)
+    return np.loadtxt(path + pc_info_file)
+
+def load_occupancy_grid(path):
+    file = open(path, 'r')
 
 def write_waypoints(path, name, route):
     ms_dir = path + missions_dir

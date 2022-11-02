@@ -2,7 +2,7 @@ import numpy as np
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import open3d as o3d
-import destination_list as dl
+import structures.destination_list as dl
 
 class PointsSelectorApp:
 

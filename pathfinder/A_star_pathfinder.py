@@ -1,6 +1,6 @@
 import numpy as np
 from queue import PriorityQueue
-import voxel_raycast as vr
+import utils.voxel_raycast as vr
 
 height_step_priority = 1
 obstacle_cost = 10.0

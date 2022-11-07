@@ -1,6 +1,13 @@
 import numpy as np
 
-def get_occupancy_grid(shape, voxels):
+def pos2idx(min_bound, pos, voxel_size):
+    return ((pos - min_bound - voxel_size / 2) /
+        voxel_size).astype('int32') + 1
+
+def idx2pos(min_bound, idx, voxel_size):
+    return (idx - 1) * voxel_size + min_bound + voxel_size / 2
+
+def get_occupancy_grid(voxel_grid, shape):
     grid = np.zeros(tuple(shape + 2), dtype=np.int8)
     grid[:, :, 0] = 1
     grid[:, :, shape[2] + 1] = 1
@@ -9,6 +16,6 @@ def get_occupancy_grid(shape, voxels):
     grid[1:shape[0] + 1, 0, 1:shape[2] + 1] = 1
     grid[1:shape[0] + 1, shape[1] + 1, 1:shape[2] + 1] = 1
     
-    for vox in voxels:
+    for vox in voxel_grid.get_voxels():
         grid[tuple(vox.grid_index + 1)] = 1
     return grid

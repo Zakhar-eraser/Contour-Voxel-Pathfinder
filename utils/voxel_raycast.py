@@ -8,12 +8,15 @@ def sqr_dist(v1, v2):
 
 def zStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[2] += steps[2]
+    return list(cur_voxel)
 
 def yStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[1] += steps[1]
+    return list(cur_voxel)
 
 def xStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[0] += steps[0]
+    return list(cur_voxel)
 
 def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_y = dds[0] * (bnds[1] - start_pos[1]) + start_pos[0]
@@ -22,7 +25,10 @@ def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     posYZ = (bnds[0], y_by_x, start_pos[2])
     distXZ = sqr_dist(posXZ, pos)
     distYZ = sqr_dist(posYZ, pos)
+    checks = list(cur_voxel)
     if distXZ == distYZ:
+        checks.append(cur_voxel + (steps[0], 0, 0))
+        checks.append(cur_voxel + (0, steps[1], 0))
         cur_voxel += (steps[0], steps[1], 0)
         pos = posXZ
     elif distXZ < distYZ:
@@ -31,6 +37,7 @@ def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     else:
         cur_voxel[0] += steps[0]
         pos = posYZ
+    return checks
 
 def yzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     y_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[1]
@@ -39,8 +46,10 @@ def yzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     z_by_y = dds[1] * (bnds[1] - start_pos[1]) + start_pos[2]
     posXZ = (start_pos[0], bnds[1], z_by_y)
     distXZ = sqr_dist(posXZ, pos)
-
+    checks = list(cur_voxel)
     if distXZ == distXY:
+        checks.append(cur_voxel + (0, 0, steps[2]))
+        checks.append(cur_voxel + (0, steps[1], 0))
         cur_voxel += (0, steps[1], steps[2])
         pos = posXZ
     elif distXZ < distXY:
@@ -49,6 +58,7 @@ def yzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     else:
         cur_voxel[2] += steps[2]
         pos = posXY
+    return checks
 
 def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_z = dds[0] * (bnds[2] - start_pos[2]) + start_pos[0]
@@ -57,8 +67,10 @@ def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     posXY = (x_by_z, start_pos[1], bnds[2])
     distYZ = sqr_dist(posYZ, pos)
     distXY = sqr_dist(posXY, pos)
-
+    checks = list(cur_voxel)
     if distYZ == distXY:
+        checks.append(cur_voxel + (0, 0, steps[2]))
+        checks.append(cur_voxel + (0, steps[1], 0))
         cur_voxel += (steps[0], 0, steps[2])
         pos = posYZ
     elif distYZ < distXY:
@@ -67,6 +79,7 @@ def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     else:
         cur_voxel[2] += steps[2]
         pos = posXY
+    return checks
 
 def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_z = dds[1] * (bnds[2] - start_pos[2]) + start_pos[0]
@@ -84,12 +97,17 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     distXY = sqr_dist(posXY, pos)
     distYZ = sqr_dist(posYZ, pos)
     distXZ = sqr_dist(posXZ, pos)
-
+    checks = list(cur_voxel)
     if (distXY == distYZ) and (distXY == distXZ):
+        checks.append(cur_voxel + (steps[0], 0, 0))
+        checks.append(cur_voxel + (0, steps[1], 0))
+        checks.append(cur_voxel + (0, 0, steps[2]))
         cur_voxel += steps
         pos = posXY
     elif distXY == distYZ:
         if distXY < distXZ:
+            checks.append(cur_voxel + (steps[0], 0, 0))
+            checks.append(cur_voxel + (0, 0, steps[2]))
             cur_voxel += (steps[0], 0, steps[2])
             pos = posXY
         else:
@@ -97,6 +115,8 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
             pos = posXZ
     elif distYZ == distXZ:
         if distYZ < distXY:
+            checks.append(cur_voxel + (steps[0], 0, 0))
+            checks.append(cur_voxel + (0, steps[1], 0))
             cur_voxel += (steps[0], steps[1], 0)
             pos = posYZ
         else:
@@ -104,6 +124,8 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
             pos = posXY
     elif distXZ == distXY:
         if distXZ < distYZ:
+            checks.append(cur_voxel + (0, steps[1], 0))
+            checks.append(cur_voxel + (0, 0, steps[2]))
             cur_voxel += (0, steps[1], steps[2])
             pos = posXZ
         else:
@@ -118,9 +140,10 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     else:
         cur_voxel[1] += steps[1]
         pos = posXZ
+    return checks
 
 def check_intersection(start_voxel, target_voxel, occupancy_grid):
-    intersect = False
+    inter_vox = None
     cur_voxel = np.copy(start_voxel)
     pos = np.copy(start_voxel)
     dX = target_voxel[0] - start_voxel[0]
@@ -157,8 +180,9 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         step_fun = xyzStep
         dds = (dX/dY, dX/dZ, dY/dX, dY/dZ, dZ/dX, dZ/dY)
     
-    while (intersect == False) and (not np.array_equal(cur_voxel, target_voxel)):
-        step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
-        if occupancy_grid[tuple(cur_voxel)]:
-            intersect = True
-    return intersect
+    while (inter_vox is None) and (not np.array_equal(cur_voxel, target_voxel)):
+        check_voxels = step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
+        for vox in check_voxels:
+            if occupancy_grid[tuple(vox)]:
+                inter_vox = vox
+    return inter_vox

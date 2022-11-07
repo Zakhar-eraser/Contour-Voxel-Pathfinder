@@ -9,26 +9,8 @@ import structures.destination_list as dl
 input_path = 'cloud2dfa7db512d9b041 - Cloud.ply'
 voxel_size = 1.0
 
-def get_max_shape_idx(min_bound, max_bound):
-    shape = (max_bound - min_bound) / voxel_size + 1
-    shape = shape.astype('int32')
-    return shape
-
 def pos_to_idx(min_bound, pos):
     return np.around((pos - min_bound) / voxel_size).astype('int32')
-
-def get_occupancy_grid(shape, voxels):
-    grid = np.zeros(tuple(shape + 2), dtype=np.int8)
-    grid[:, :, 0] = 1
-    grid[:, :, shape[2] + 1] = 1
-    grid[0, :, 1:shape[2] + 1] = 1
-    grid[shape[0] + 1, :, 1:shape[2] + 1] = 1
-    grid[1:shape[0] + 1, 0, 1:shape[2] + 1] = 1
-    grid[1:shape[0] + 1, shape[1] + 1, 1:shape[2] + 1] = 1
-    
-    for vox in voxels:
-        grid[tuple(vox.grid_index + 1)] = 1
-    return grid
 
 def make_route_lines(route, last_color):
     points = route * voxel_size
@@ -45,21 +27,19 @@ def make_route_lines(route, last_color):
 def main():
     app = gui.Application.instance
     app.initialize()
-    project_dir = mm.create_project(input_path, voxel_size)
-    pcd = o3d.io.read_point_cloud(project_dir + mm.pc_file)
-    max_bound = pcd.get_max_bound()
+    info = mm.create_project(input_path, voxel_size)
+    pcd = o3d.io.read_point_cloud(info.project_dir + mm.pc_file)
     min_bound = pcd.get_min_bound()
-    shift = mm.get_map_shift(project_dir)
+    shift = mm.get_map_shift(info.project_dir)
     scene = visualizer.PointsSelectorApp(pcd)
     app.run()
     position = scene.targets
+    assert position is not None and position.target is not None, "It must be set 2 points atleast"
     voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
-    voxels = voxel_grid.get_voxels()
-    shape = get_max_shape_idx(min_bound, max_bound)
-    occupancy_grid = get_occupancy_grid(shape, voxels)
+    with open(info.project_dir + mm.map_occupancy_grid, 'rb') as grid:
+        occupancy_grid = np.load(grid)
 
-    assert position is not None and position.target is not None, "It must be set 2 points atleast"
     line_sets = []
     marks = [position.mark]
     while position.target is not None:

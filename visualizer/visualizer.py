@@ -3,12 +3,16 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import open3d as o3d
 import structures.destination_list as dl
+import utils.voxel_raycast as vr
+from utils.grids.occupancy_grid import pos2idx
 
 class PointsSelectorApp:
 
-    voxel_size = 1
+    max_selecton_vox_dist = 100
 
-    def __init__(self, cloud):
+    def __init__(self, voxel_grid):
+        vx = voxel_grid
+
         app = gui.Application.instance
         self.window = app.create_window("Select points", 1024, 640)
         self.widget3d = gui.SceneWidget()
@@ -38,7 +42,7 @@ class PointsSelectorApp:
         mat.shader = "defaultUnlit"
 
         mat.point_size = 6 * self.window.scaling
-        self.widget3d.scene.add_geometry("Point Cloud", cloud, mat)
+        self.widget3d.scene.add_geometry("Point Cloud", vx, mat)
 
         bounds = self.widget3d.scene.bounding_box
         center = bounds.get_center()
@@ -52,6 +56,21 @@ class PointsSelectorApp:
         self.lock_geom = False
         self.dest_count = 0
         self.obs_count = 0
+
+        self._vs = vx.voxel_size
+        self._bounding_box = vx.get_axis_aligned_bounding_box()
+        self._min_bound = self._bounding_box.min_bound
+        self._shape = (self._bounding_box.get_extent() /
+            self._vs).astype('int32')
+    
+    def _pos_in_bounds(self, pos):
+        sh = self._shape
+        idx = pos2idx(self._min_bound, pos, self._vs)
+        if (idx[0] > 0) and (idx[1] > 0) and (idx[2] > 0) and (
+            (idx[0] <= sh[0]) and (idx[1] <= sh[1]) and (idx[2] <= sh[2])):
+            return True
+        else:
+            return False
     
     def _on_layout(self, layout_context):
         r = self.window.content_rect
@@ -80,7 +99,6 @@ class PointsSelectorApp:
     def _on_keyboard_widget3d(self, event):
         if event.type == gui.KeyEvent.Type.DOWN:
             if self.lock_geom:
-                vs = PointsSelectorApp.voxel_size
                 mat = rendering.MaterialRecord()
                 mat.shader = "defaultLit"
 
@@ -104,17 +122,17 @@ class PointsSelectorApp:
                         geometry = self.last_target.mark
                         name = self.last_target.name
                         if event.key == gui.KeyName.W:
-                            geometry.translate((0, 0, vs))
+                            geometry.translate((0, 0, self._vs))
                         elif event.key == gui.KeyName.S:
-                            geometry.translate((0, 0, -vs))
+                            geometry.translate((0, 0, -self._vs))
                         elif event.key == gui.KeyName.LEFT:
-                            geometry.translate((-vs, 0, 0))
+                            geometry.translate((-self._vs, 0, 0))
                         elif event.key == gui.KeyName.RIGHT:
-                            geometry.translate((vs, 0, 0))
+                            geometry.translate((self._vs, 0, 0))
                         elif event.key == gui.KeyName.UP:
-                            geometry.translate((0, vs, 0))
+                            geometry.translate((0, self._vs, 0))
                         elif event.key == gui.KeyName.DOWN:
-                            geometry.translate((0, -vs, 0))
+                            geometry.translate((0, -self._vs, 0))
                         else:
                             return gui.Widget.EventCallbackResult.IGNORED
                         self.widget3d.scene.remove_geometry(name)
@@ -139,58 +157,50 @@ class PointsSelectorApp:
 
     def _on_mouse_widget3d(self, event):
         if event.type == gui.MouseEvent.Type.BUTTON_DOWN and event.is_modifier_down(
-                gui.KeyModifier.CTRL):
+                gui.KeyModifier.CTRL) and (not self.lock_geom):
 
-            if self.lock_geom:
-                return gui.Widget.EventCallbackResult.IGNORED
+            depth = PointsSelectorApp.max_selecton_vox_dist * (
+                PointsSelectorApp.voxel_size)
+            cam_pos = self.widget3d.scene.camera.unproject(
+                event.x, event.y, 0, self.widget3d.frame.width,
+                self.widget3d.frame.height) 
+            world = self.widget3d.scene.camera.unproject(
+                event.x, event.y, depth, self.widget3d.frame.width,
+                self.widget3d.frame.height)               
 
-            def depth_callback(depth_image):
-                x = event.x - self.widget3d.frame.x
-                y = event.y - self.widget3d.frame.y
-                depth = np.asarray(depth_image)[y, x]
+            def update_geometries():
+                mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
+                mark.compute_vertex_normals()
+                mark.translate(world)
+                mat = rendering.MaterialRecord()
+                mat.shader = "defaultLit"
 
-                if depth == 1.0:
-                    return gui.Widget.EventCallbackResult.IGNORED
+                if self.targets is None:
+                    mark.paint_uniform_color((0, 1, 0))
+                    name = "start"
+                    self.last_target = self.targets = dl.Path(mark, name)
                 else:
-                    world = self.widget3d.scene.camera.unproject(
-                        event.x, event.y, depth, self.widget3d.frame.width,
-                        self.widget3d.frame.height)               
-
-                def update_geometries():
-                    vs = PointsSelectorApp.voxel_size
-                    mark = o3d.geometry.TriangleMesh.create_sphere(vs / 2)
-                    mark.compute_vertex_normals()
-                    mark.translate(world)
-                    mat = rendering.MaterialRecord()
-                    mat.shader = "defaultLit"
-
-                    if self.targets is None:
-                        mark.paint_uniform_color((0, 1, 0))
-                        name = "start"
-                        self.last_target = self.targets = dl.Path(mark, name)
+                    if self.transfer_type == dl.Transfer.DESTINATE:
+                        mark_color = (1, 0, 0)
+                        name = "dest_" + str(self.dest_count)
+                        self.dest_count += 1
                     else:
-                        if self.transfer_type == dl.Transfer.DESTINATE:
-                            mark_color = (1, 0, 0)
-                            name = "dest_" + str(self.dest_count)
-                            self.dest_count += 1
-                        else:
-                            mark_color = (0, 0, 1)
-                            name = "obs_" + str(self.obs_count)
-                            self.obs_count += 1
-                        
-                        mark.paint_uniform_color(mark_color)
-                        self.last_target = self.last_target.add(dl.Path(mark, name), self.transfer_type)
+                        mark_color = (0, 0, 1)
+                        name = "obs_" + str(self.obs_count)
+                        self.obs_count += 1
                     
-                    self.info.text = "Move position"
-                    self.window.set_needs_layout()
+                    mark.paint_uniform_color(mark_color)
+                    self.last_target = self.last_target.add(dl.Path(mark, name), self.transfer_type)
+                
+                self.info.text = "Move position"
+                self.window.set_needs_layout()
 
-                    self.widget3d.scene.add_geometry(name, mark, mat)
+                self.widget3d.scene.add_geometry(name, mark, mat)
 
-                gui.Application.instance.post_to_main_thread(
-                    self.window, update_geometries)
+            gui.Application.instance.post_to_main_thread(
+                self.window, update_geometries)
 
-                self.lock_geom = True
+            self.lock_geom = True
 
-            self.widget3d.scene.scene.render_to_depth_image(depth_callback)
             return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED

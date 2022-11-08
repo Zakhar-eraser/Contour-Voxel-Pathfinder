@@ -63,14 +63,28 @@ class PointsSelectorApp:
         self._shape = (self._bounding_box.get_extent() /
             self._vs).astype('int32')
     
-    def _pos_in_bounds(self, pos):
-        sh = self._shape
+    def _idx_in_bounds(self, idx, min, max):
+        in_bounds = False
+        if (idx[0] > min[0]) and (idx[1] > min[1]) and (idx[2] > min[2]) and (
+            (idx[0] <= max[0]) and (idx[1] <= max[1]) and (idx[2] <= max[2])):
+            in_bounds = True
+        return in_bounds
+    
+    def _get_nearest_bounding_box_point(self, pos, dir):
+        s = self._shape
         idx = pos2idx(self._min_bound, pos, self._vs)
-        if (idx[0] > 0) and (idx[1] > 0) and (idx[2] > 0) and (
-            (idx[0] <= sh[0]) and (idx[1] <= sh[1]) and (idx[2] <= sh[2])):
-            return True
+        if (self._pos_in_bounds(idx, (0, 0, 0), s)):
+            voxel = idx
         else:
-            return False
+            planes = (((0, 0, 0), (0, 0, s[2]), (0, s[1], s[2])),
+                      ((0, 0, 0), (s[0], 0, 0),(s[0], 0, s[2])),
+                      ((0, 0, 0), (0, s[1], 0), (s[0], s[1], 0)),
+                      ((s[0], 0, 0), (s[0], s[1], 0), s),
+                      ((0, s[1], 0), (s[0], s[1], 0), s),
+                      ((0, 0, s[2]), (s[0], 0, s[2]), s))
+            
+            for p in planes:
+
     
     def _on_layout(self, layout_context):
         r = self.window.content_rect

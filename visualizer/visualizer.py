@@ -5,6 +5,9 @@ import open3d as o3d
 import structures.destination_list as dl
 import utils.voxel_raycast as vr
 from utils.grids.occupancy_grid import pos2idx
+from utils.grids.occupancy_grid import idx2pos
+from utils.geometry.line_plane_intersection import find_intersection
+from utils.geometry.distances import sqr_dist
 
 class PointsSelectorApp:
 
@@ -70,21 +73,31 @@ class PointsSelectorApp:
             in_bounds = True
         return in_bounds
     
-    def _get_nearest_bounding_box_point(self, pos, dir):
+    def _get_nearest_bounding_box_voxel(self, line):
         s = self._shape
-        idx = pos2idx(self._min_bound, pos, self._vs)
+        idx = pos2idx(self._min_bound, line[0], self._vs)
         if (self._pos_in_bounds(idx, (0, 0, 0), s)):
             voxel = idx
         else:
-            planes = (((0, 0, 0), (0, 0, s[2]), (0, s[1], s[2])),
-                      ((0, 0, 0), (s[0], 0, 0),(s[0], 0, s[2])),
-                      ((0, 0, 0), (0, s[1], 0), (s[0], s[1], 0)),
-                      ((s[0], 0, 0), (s[0], s[1], 0), s),
-                      ((0, s[1], 0), (s[0], s[1], 0), s),
-                      ((0, 0, s[2]), (s[0], 0, s[2]), s))
+            planes = np.array((((1, 1, 1), (1, 1, s[2]), (1, s[1], s[2])),
+                      ((1, 1, 1), (s[0], 1, 1),(s[0], 1, s[2])),
+                      ((1, 1, 1), (1, s[1], 1), (s[0], s[1], 1)),
+                      ((s[0], 1, 1), (s[0], s[1], 1), s),
+                      ((1, s[1], 1), (s[0], s[1], 1), s),
+                      ((1, 1, s[2]), (s[0], 1, s[2]), s)))
             
+            min_dist = (self.max_selecton_vox_dist *
+                self.max_selecton_vox_dist)
+            voxel = None
             for p in planes:
-
+                target = find_intersection(line, p)
+                if (target is not None) and (
+                    self._idx_in_bounds(target, p[0], p[2])):
+                    dist = sqr_dist(target, line[0])
+                    if (dist < min_dist):
+                        min_dist = dist
+                        voxel = target
+        return voxel
     
     def _on_layout(self, layout_context):
         r = self.window.content_rect
@@ -177,44 +190,48 @@ class PointsSelectorApp:
                 PointsSelectorApp.voxel_size)
             cam_pos = self.widget3d.scene.camera.unproject(
                 event.x, event.y, 0, self.widget3d.frame.width,
-                self.widget3d.frame.height) 
-            world = self.widget3d.scene.camera.unproject(
+                self.widget3d.frame.height)
+            dist_pos = self.widget3d.scene.camera.unproject(
                 event.x, event.y, depth, self.widget3d.frame.width,
-                self.widget3d.frame.height)               
+                self.widget3d.frame.height)
+            bnd_vox = self._get_nearest_bounding_box_voxel((cam_pos, dist_pos))
+            target_vox = vr.check_intersection(bnd_vox, pos2idx(dist_pos), self.vs)
+            if target_vox is not None:
+                world = idx2pos(self._min_bound, target_vox, self._vs)
 
-            def update_geometries():
-                mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
-                mark.compute_vertex_normals()
-                mark.translate(world)
-                mat = rendering.MaterialRecord()
-                mat.shader = "defaultLit"
+                def update_geometries():
+                    mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
+                    mark.compute_vertex_normals()
+                    mark.translate(world)
+                    mat = rendering.MaterialRecord()
+                    mat.shader = "defaultLit"
 
-                if self.targets is None:
-                    mark.paint_uniform_color((0, 1, 0))
-                    name = "start"
-                    self.last_target = self.targets = dl.Path(mark, name)
-                else:
-                    if self.transfer_type == dl.Transfer.DESTINATE:
-                        mark_color = (1, 0, 0)
-                        name = "dest_" + str(self.dest_count)
-                        self.dest_count += 1
+                    if self.targets is None:
+                        mark.paint_uniform_color((0, 1, 0))
+                        name = "start"
+                        self.last_target = self.targets = dl.Path(mark, name)
                     else:
-                        mark_color = (0, 0, 1)
-                        name = "obs_" + str(self.obs_count)
-                        self.obs_count += 1
+                        if self.transfer_type == dl.Transfer.DESTINATE:
+                            mark_color = (1, 0, 0)
+                            name = "dest_" + str(self.dest_count)
+                            self.dest_count += 1
+                        else:
+                            mark_color = (0, 0, 1)
+                            name = "obs_" + str(self.obs_count)
+                            self.obs_count += 1
+                        
+                        mark.paint_uniform_color(mark_color)
+                        self.last_target = self.last_target.add(dl.Path(mark, name), self.transfer_type)
                     
-                    mark.paint_uniform_color(mark_color)
-                    self.last_target = self.last_target.add(dl.Path(mark, name), self.transfer_type)
-                
-                self.info.text = "Move position"
-                self.window.set_needs_layout()
+                    self.info.text = "Move position"
+                    self.window.set_needs_layout()
 
-                self.widget3d.scene.add_geometry(name, mark, mat)
+                    self.widget3d.scene.add_geometry(name, mark, mat)
 
-            gui.Application.instance.post_to_main_thread(
-                self.window, update_geometries)
+                gui.Application.instance.post_to_main_thread(
+                    self.window, update_geometries)
 
-            self.lock_geom = True
+                self.lock_geom = True
 
-            return gui.Widget.EventCallbackResult.HANDLED
+                return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED

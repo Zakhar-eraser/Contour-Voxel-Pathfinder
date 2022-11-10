@@ -3,17 +3,13 @@ from queue import PriorityQueue
 import utils.voxel_raycast as vr
 import utils.neighbours as nb
 import structures.priority_node as pn
+from utils.geometry.distances import manh_dist
+from utils.geometry.distances import sqr_dist
 
 height_step_priority = 1
 obstacle_cost = 10.0
 obstacle_check_depth = 0
 observation_range = 40
-
-def sqr_dist(v1, v2):
-    return np.sum(np.square(v1 - v2))
-
-def manh_dist(v1, v2):
-    return np.sum(np.abs(v1 - v2))
 
 def heuristics(move_priority, cur, next, end):
     return manh_dist(next, end) + move_priority(cur, next)

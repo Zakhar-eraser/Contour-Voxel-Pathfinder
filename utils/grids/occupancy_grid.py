@@ -1,7 +1,7 @@
 import numpy as np
 
 def pos2idx(min_bound, pos, voxel_size):
-    return ((pos - min_bound - voxel_size / 2) /
+    return ((pos - min_bound) /
         voxel_size).astype('int32') + 1
 
 def idx2pos(min_bound, idx, voxel_size):

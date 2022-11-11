@@ -197,7 +197,7 @@ class PointsSelectorApp:
             bnd_vox = self._get_nearest_bounding_box_voxel((cam_pos, dist_pos))
             target_vox = vr.check_intersection(bnd_vox, pos2idx(dist_pos), self.vs)
             if target_vox is not None:
-                world = idx2pos(self._min_bound, target_vox, self._vs)
+                world = idx2pos(self._min_bound, target_vox[0], self._vs)
 
                 def update_geometries():
                     mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)

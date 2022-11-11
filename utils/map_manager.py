@@ -23,30 +23,37 @@ def hash(path):
     return md5_hash.hexdigest()
 
 def create_project(path, voxel_size):
-    filename = os.path.splitext(os.path.basename(path))[0]
-    if not os.path.exists(maps_dir): os.mkdir(maps_dir)
-    project_dir = maps_dir + filename + '/'
-    file_path = project_dir + pc_info_file
+    inf = info.Info()
+    if os.path.exists(path):
+        filename = os.path.splitext(os.path.basename(path))[0]
+        if not os.path.exists(maps_dir): os.mkdir(maps_dir)
+        project_dir = maps_dir + filename + '/'
+        file_path = project_dir + pc_info_file
 
-    with open(file_path, "rb") as info_file:
-        inf = pickle.load(info_file)
-    hs = hash(path)
-    if not os.path.exists(project_dir) or inf.hash != hs:
-        os.mkdir(project_dir)
-        pcd = o3d.io.read_point_cloud(path)
-        pcd_center = pcd.get_center()
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as info_file:
+                inf = pickle.load(info_file)
+        hs = hash(path)
+        if (inf.hash != hs) or (inf.voxel_size != voxel_size):
+            if not os.path.exists(project_dir):
+                os.mkdir(project_dir)
+            pcd = o3d.io.read_point_cloud(path)
+            pcd_center = pcd.get_center()
 
-        inf = info.Info(
-            hs,
-            pcd_center,
-            None,
-            project_dir)
-        with open(file_path, "wb") as info_file:
-            pickle.dump(inf, info_file)
+            inf = info.Info(
+                hs,
+                pcd_center,
+                voxel_size,
+                project_dir)
+            with open(file_path, "wb") as info_file:
+                pickle.dump(inf, info_file)
 
-        pcd = pcd.translate((0, 0, 0), relative=False)
-        pcd = pcd.voxel_down_sample(voxel_size)
-        o3d.io.write_point_cloud(project_dir + pc_file, pcd)
+            pcd = pcd.translate((0, 0, 0), relative=False)
+            pcd = pcd.voxel_down_sample(voxel_size)
+            o3d.io.write_point_cloud(project_dir + pc_file, pcd)
+    else:
+        print("It can`t be opened a map ply file on path:")
+        print(path)
     return inf
 
 def load_occupancy_grid(inf, voxel_grid):
@@ -59,6 +66,15 @@ def load_occupancy_grid(inf, voxel_grid):
         with open(inf.project_dir + pc_info_file, 'wb') as file:
             pickle.dump(inf, file)
     return occupancy_grid
+
+def check_project_consistence(path):
+    consistant = False
+    if os.path.isdir(path):
+        info = os.path.join(path, pc_info_file)
+        ply = os.path.join(path, pc_file)
+        if os.path.exists(info) and os.path.exists(ply):
+            consistant = True
+    return consistant
 
 def write_waypoints(path, name, route):
     ms_dir = path + missions_dir

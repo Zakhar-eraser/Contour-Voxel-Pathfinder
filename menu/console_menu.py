@@ -2,6 +2,7 @@ import utils.map_manager as mm
 import os
 import pickle
 import structures.map_info as info
+from os.path import join
 
 new_project = "[New project]"
 choosing_project = "Choose project to open:"
@@ -25,7 +26,7 @@ def open_or_create_project_dialogue():
     inf = info.Info()
     projects_list = [new_project]
     for project in os.listdir(mm.maps_dir):
-        project_dir = os.path.join(mm.maps_dir, project)
+        project_dir = join(mm.maps_dir, project)
         if mm.check_project_consistence(project_dir):
             projects_list.append(project)
     
@@ -41,8 +42,9 @@ def open_or_create_project_dialogue():
             if selection == 0:
                 inf = create_project_dialogue()
             else:
-                with open(os.path.join(mm.maps_dir,
-                    projects_list[selection]), 'rb') as info_file:
+                with open(join(join(mm.maps_dir,
+                    projects_list[selection]),
+                    mm.pc_info_file), 'rb') as info_file:
                     inf = pickle.load(info_file)
         else:
             print(wrong_range)

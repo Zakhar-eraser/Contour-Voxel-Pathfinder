@@ -13,8 +13,9 @@ class PointsSelectorApp:
 
     max_selecton_vox_dist = 100
 
-    def __init__(self, voxel_grid):
+    def __init__(self, voxel_grid, occupancy_grid):
         vx = voxel_grid
+        self._grid = occupancy_grid
 
         app = gui.Application.instance
         self.window = app.create_window("Select points", 1024, 640)
@@ -76,7 +77,7 @@ class PointsSelectorApp:
     def _get_nearest_bounding_box_voxel(self, line):
         s = self._shape
         idx = pos2idx(self._min_bound, line[0], self._vs)
-        if (self._pos_in_bounds(idx, (0, 0, 0), s)):
+        if (self._idx_in_bounds(idx, (0, 0, 0), s)):
             voxel = idx
         else:
             planes = np.array((((1, 1, 1), (1, 1, s[2]), (1, s[1], s[2])),
@@ -186,16 +187,17 @@ class PointsSelectorApp:
         if event.type == gui.MouseEvent.Type.BUTTON_DOWN and event.is_modifier_down(
                 gui.KeyModifier.CTRL) and (not self.lock_geom):
 
-            depth = PointsSelectorApp.max_selecton_vox_dist * (
-                PointsSelectorApp.voxel_size)
+            depth = self.max_selecton_vox_dist * self._vs
             cam_pos = self.widget3d.scene.camera.unproject(
                 event.x, event.y, 0, self.widget3d.frame.width,
                 self.widget3d.frame.height)
             dist_pos = self.widget3d.scene.camera.unproject(
-                event.x, event.y, depth, self.widget3d.frame.width,
+                event.x, event.y, 0.9995, self.widget3d.frame.width,
                 self.widget3d.frame.height)
             bnd_vox = self._get_nearest_bounding_box_voxel((cam_pos, dist_pos))
-            target_vox = vr.check_intersection(bnd_vox, pos2idx(dist_pos), self.vs)
+            target_vox = vr.check_intersection(bnd_vox,
+                pos2idx(self._min_bound, dist_pos, self._vs),
+                self._grid)
             if target_vox is not None:
                 world = idx2pos(self._min_bound, target_vox[0], self._vs)
 

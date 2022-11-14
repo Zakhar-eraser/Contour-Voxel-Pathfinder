@@ -1,5 +1,6 @@
 import numpy as np
 import open3d as o3d
+from os.path import join
 import pathfinder.A_star_pathfinder as asp
 import open3d.visualization.gui as gui
 import visualizer.visualizer as visualizer
@@ -8,10 +9,7 @@ import menu.console_menu as menu
 import structures.destination_list as dl
 from utils.grids.occupancy_grid import pos2idx
 
-input_path = 'cloud2dfa7db512d9b041 - Cloud.ply'
-voxel_size = 1.0
-
-def make_route_lines(route, last_color):
+def make_route_lines(route, last_color, voxel_size):
     points = route * voxel_size
     lines = np.arange(len(points) - 1)[:, np.newaxis]
     lines = np.concatenate((lines, lines + 1), axis=1)
@@ -28,17 +26,17 @@ def main():
     app.initialize()
     info = menu.open_or_create_project_dialogue()
     if info.project_dir is not None:
-        pcd = o3d.io.read_point_cloud(info.project_dir + mm.pc_file)
-        min_bound = pcd.get_min_bound()
-        scene = visualizer.PointsSelectorApp(pcd)
+        pcd = o3d.io.read_point_cloud(join(info.project_dir, mm.pc_file))
+        voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, info.voxel_size)
+        min_bound = voxel_grid.get_min_bound()
+        with open(info.project_dir + mm.map_occupancy_grid, 'rb') as grid:
+            occupancy_grid = np.load(grid)
+        scene = visualizer.PointsSelectorApp(voxel_grid, occupancy_grid)
         app.run()
         position = scene.targets
         start_height = position.mark.get_center()[2]  ## DO NOT DELETE
         assert position is not None and position.target is not None, "It must be set 2 points atleast"
-        voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
 
-        with open(info.project_dir + mm.map_occupancy_grid, 'rb') as grid:
-            occupancy_grid = np.load(grid)
 
         line_sets = []
         marks = [position.mark]
@@ -52,7 +50,9 @@ def main():
                 stop = asp.visibility_cond
                 mp = asp.plane_move_priority
                 last_color = [0, 0, 1]
-            target_voxel = pos2idx(min_bound, position.target.mark.get_center())
+            target_voxel = pos2idx(min_bound,
+                position.target.mark.get_center(),
+                voxel_grid.voxel_size)
             if position.transfer == dl.Transfer.DESTINATE or position.transfer == None:
                 start_voxel = pos2idx(min_bound, position.mark.get_center())
             else:
@@ -64,7 +64,7 @@ def main():
             route = asp.get_route(graph, min_bound, target_voxel)
             #mm.write_waypoints(project_dir, position.target.name + "_route"
             #    , route + info.shift - (0, 0, start_height))
-            line_sets += [make_route_lines(route, last_color)]
+            line_sets += [make_route_lines(route, last_color, info.voxel_size)]
             position = position.target
 
         o3d.visualization.draw_geometries([voxel_grid] + line_sets + marks)

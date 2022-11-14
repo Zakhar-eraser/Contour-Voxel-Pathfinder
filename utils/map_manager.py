@@ -1,6 +1,8 @@
 import numpy as np
 import open3d as o3d
 import os
+from os.path import exists
+from os.path import join
 import utm
 import pickle
 import structures.map_info as info
@@ -24,18 +26,22 @@ def hash(path):
 
 def create_project(path, voxel_size):
     inf = info.Info()
-    if os.path.exists(path):
+    if exists(path):
         filename = os.path.splitext(os.path.basename(path))[0]
-        if not os.path.exists(maps_dir): os.mkdir(maps_dir)
+        if not exists(maps_dir): os.mkdir(maps_dir)
         project_dir = maps_dir + filename + '/'
         file_path = project_dir + pc_info_file
 
-        if os.path.exists(file_path):
+        if exists(file_path):
             with open(file_path, "rb") as info_file:
                 inf = pickle.load(info_file)
+        
+        print("Calculating hash...")
+
         hs = hash(path)
-        if (inf.hash != hs) or (inf.voxel_size != voxel_size):
-            if not os.path.exists(project_dir):
+        if (inf.hash != hs) or (inf.voxel_size != voxel_size) or (
+            not exists(join(project_dir, map_occupancy_grid))):
+            if not exists(project_dir):
                 os.mkdir(project_dir)
             pcd = o3d.io.read_point_cloud(path)
             pcd_center = pcd.get_center()
@@ -48,31 +54,37 @@ def create_project(path, voxel_size):
             with open(file_path, "wb") as info_file:
                 pickle.dump(inf, info_file)
 
+            print("Translating point cloud to zero...")
+
             pcd = pcd.translate((0, 0, 0), relative=False)
+
+            print("Point cloud downsampling...")
+
             pcd = pcd.voxel_down_sample(voxel_size)
+
+            print("Creating voxel grid...")
+
+            grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
+
+            print("Saving occupancy grid")
+            with open(join(project_dir, map_occupancy_grid), 'wb') as file:
+                np.save(file, ocg.get_occupancy_grid(grid))
+
+            print("Saving subsampled point cloud...")
+
             o3d.io.write_point_cloud(project_dir + pc_file, pcd)
     else:
         print("It can`t be opened a map ply file on path:")
         print(path)
     return inf
 
-def load_occupancy_grid(inf, voxel_grid):
-    if inf.voxel_size == voxel_grid.voxel_size:
-        with open(inf.project_dir + map_occupancy_grid, 'rb') as file:
-            occupancy_grid = np.load(file)
-    else:
-        occupancy_grid = ocg.get_occupancy_grid(voxel_grid)
-        inf.voxel_size = voxel_grid.voxel_size
-        with open(inf.project_dir + pc_info_file, 'wb') as file:
-            pickle.dump(inf, file)
-    return occupancy_grid
-
 def check_project_consistence(path):
     consistant = False
     if os.path.isdir(path):
-        info = os.path.join(path, pc_info_file)
-        ply = os.path.join(path, pc_file)
-        if os.path.exists(info) and os.path.exists(ply):
+        info = join(path, pc_info_file)
+        ply = join(path, pc_file)
+        grid = join(path, map_occupancy_grid)
+        if exists(info) and exists(ply) and exists(grid):
             consistant = True
     return consistant
 

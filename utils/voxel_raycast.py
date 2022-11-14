@@ -8,15 +8,15 @@ def sqr_dist(v1, v2):
 
 def zStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[2] += steps[2]
-    return list(cur_voxel)
+    return [cur_voxel]
 
 def yStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[1] += steps[1]
-    return list(cur_voxel)
+    return [cur_voxel]
 
 def xStep(pos, cur_voxel, steps, start_pos, bnds, ds):
     cur_voxel[0] += steps[0]
-    return list(cur_voxel)
+    return [cur_voxel]
 
 def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     x_by_y = dds[0] * (bnds[1] - start_pos[1]) + start_pos[0]
@@ -25,7 +25,7 @@ def xyStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     posYZ = (bnds[0], y_by_x, start_pos[2])
     distXZ = sqr_dist(posXZ, pos)
     distYZ = sqr_dist(posYZ, pos)
-    checks = list(cur_voxel)
+    checks = [cur_voxel]
     if distXZ == distYZ:
         checks.append(cur_voxel + (steps[0], 0, 0))
         checks.append(cur_voxel + (0, steps[1], 0))
@@ -46,7 +46,7 @@ def yzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     z_by_y = dds[1] * (bnds[1] - start_pos[1]) + start_pos[2]
     posXZ = (start_pos[0], bnds[1], z_by_y)
     distXZ = sqr_dist(posXZ, pos)
-    checks = list(cur_voxel)
+    checks = [cur_voxel]
     if distXZ == distXY:
         checks.append(cur_voxel + (0, 0, steps[2]))
         checks.append(cur_voxel + (0, steps[1], 0))
@@ -67,7 +67,7 @@ def xzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     posXY = (x_by_z, start_pos[1], bnds[2])
     distYZ = sqr_dist(posYZ, pos)
     distXY = sqr_dist(posXY, pos)
-    checks = list(cur_voxel)
+    checks = [cur_voxel]
     if distYZ == distXY:
         checks.append(cur_voxel + (0, 0, steps[2]))
         checks.append(cur_voxel + (0, steps[1], 0))
@@ -97,7 +97,7 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
     distXY = sqr_dist(posXY, pos)
     distYZ = sqr_dist(posYZ, pos)
     distXZ = sqr_dist(posXZ, pos)
-    checks = list(cur_voxel)
+    checks = [cur_voxel]
     if (distXY == distYZ) and (distXY == distXZ):
         checks.append(cur_voxel + (steps[0], 0, 0))
         checks.append(cur_voxel + (0, steps[1], 0))

@@ -8,6 +8,16 @@ import utils.map_manager as mm
 import menu.console_menu as menu
 import structures.destination_list as dl
 from utils.grids.occupancy_grid import pos2idx
+from utils.grids.occupancy_grid import idx2pos
+
+def get_route(graph, min_bound, voxel_size, end):
+    cur = end
+    route = list()
+    while graph[tuple(cur)] is not None:
+        route.append(idx2pos(min_bound, cur, voxel_size))
+        cur = graph[tuple(cur)]
+    route.append(idx2pos(min_bound, cur, voxel_size))
+    return route
 
 def make_route_lines(route, last_color, voxel_size):
     points = route * voxel_size
@@ -28,6 +38,7 @@ def main():
     if info.project_dir is not None:
         pcd = o3d.io.read_point_cloud(join(info.project_dir, mm.pc_file))
         voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, info.voxel_size)
+        vs = voxel_grid.voxel_size
         min_bound = voxel_grid.get_min_bound()
         with open(info.project_dir + mm.map_occupancy_grid, 'rb') as grid:
             occupancy_grid = np.load(grid)
@@ -36,7 +47,6 @@ def main():
         position = scene.targets
         start_height = position.mark.get_center()[2]  ## DO NOT DELETE
         assert position is not None and position.target is not None, "It must be set 2 points atleast"
-
 
         line_sets = []
         marks = [position.mark]
@@ -52,16 +62,16 @@ def main():
                 last_color = [0, 0, 1]
             target_voxel = pos2idx(min_bound,
                 position.target.mark.get_center(),
-                voxel_grid.voxel_size)
+                vs)
             if position.transfer == dl.Transfer.DESTINATE or position.transfer == None:
-                start_voxel = pos2idx(min_bound, position.mark.get_center())
+                start_voxel = pos2idx(min_bound, position.mark.get_center(), vs)
             else:
                 start_voxel = route[1] + 1
             tmp = occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)]
             occupancy_grid[tuple(start_voxel)] = occupancy_grid[tuple(target_voxel)] = 0
             graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop, mp)
             occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
-            route = asp.get_route(graph, min_bound, target_voxel)
+            route = get_route(graph, min_bound, vs, target_voxel)
             #mm.write_waypoints(project_dir, position.target.name + "_route"
             #    , route + info.shift - (0, 0, start_height))
             line_sets += [make_route_lines(route, last_color, info.voxel_size)]

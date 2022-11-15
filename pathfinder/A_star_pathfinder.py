@@ -82,13 +82,3 @@ def find_path_A_star(grid, start, end,
                 frontier.put((next_node.priority, next_node))
     
     return parents
-
-def get_route(graph, min_bound, end):
-    cur = end
-    route = list()
-    while graph[tuple(cur)] is not None:
-        route.append(cur)
-        cur = graph[tuple(cur)]
-    route.append(cur)
-    return np.array(route) + min_bound  # Use min_voxel instead point
-   

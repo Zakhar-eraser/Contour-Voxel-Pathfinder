@@ -11,8 +11,6 @@ from utils.geometry.distances import sqr_dist
 
 class PointsSelectorApp:
 
-    max_selecton_vox_dist = 100
-
     def __init__(self, voxel_grid, occupancy_grid):
         vx = voxel_grid
         self._grid = occupancy_grid
@@ -69,16 +67,15 @@ class PointsSelectorApp:
     
     def _idx_in_bounds(self, idx, min, max):
         in_bounds = False
-        if (idx[0] > min[0]) and (idx[1] > min[1]) and (idx[2] > min[2]) and (
+        if (idx[0] >= min[0]) and (idx[1] >= min[1]) and (idx[2] >= min[2]) and (
             (idx[0] <= max[0]) and (idx[1] <= max[1]) and (idx[2] <= max[2])):
             in_bounds = True
         return in_bounds
     
     def _get_nearest_bounding_box_voxel(self, line):
         s = self._shape
-        idx = pos2idx(self._min_bound, line[0], self._vs)
-        if (self._idx_in_bounds(idx, (0, 0, 0), s)):
-            voxel = idx
+        if (self._idx_in_bounds(line[0], (0, 0, 0), s)):
+            voxel = line[0]
         else:
             planes = np.array((((1, 1, 1), (1, 1, s[2]), (1, s[1], s[2])),
                       ((1, 1, 1), (s[0], 1, 1),(s[0], 1, s[2])),
@@ -87,17 +84,17 @@ class PointsSelectorApp:
                       ((1, s[1], 1), (s[0], s[1], 1), s),
                       ((1, 1, s[2]), (s[0], 1, s[2]), s)))
             
-            min_dist = (self.max_selecton_vox_dist *
-                self.max_selecton_vox_dist)
+            min_dist = float('inf')
             voxel = None
             for p in planes:
                 target = find_intersection(line, p)
-                if (target is not None) and (
-                    self._idx_in_bounds(target, p[0], p[2])):
-                    dist = sqr_dist(target, line[0])
-                    if (dist < min_dist):
-                        min_dist = dist
-                        voxel = target
+                if (target is not None):
+                    target = target.astype('int32')
+                    if self._idx_in_bounds(target, p[0], p[2]):
+                        dist = sqr_dist(target, line[0])
+                        if (dist < min_dist):
+                            min_dist = dist
+                            voxel = target
         return voxel
     
     def _on_layout(self, layout_context):
@@ -175,6 +172,7 @@ class PointsSelectorApp:
                         self.widget3d.scene.remove_geometry(self.last_target.name + "_line")
                         self.widget3d.scene.remove_geometry(self.last_target.name)
                         self.last_target = self.last_target.origin
+                        self.last_target.target = None
                     else:
                         return gui.Widget.EventCallbackResult.IGNORED 
                 gui.Application.instance.post_to_main_thread(
@@ -186,20 +184,18 @@ class PointsSelectorApp:
     def _on_mouse_widget3d(self, event):
         if event.type == gui.MouseEvent.Type.BUTTON_DOWN and event.is_modifier_down(
                 gui.KeyModifier.CTRL) and (not self.lock_geom):
-
-            depth = self.max_selecton_vox_dist * self._vs
             cam_pos = self.widget3d.scene.camera.unproject(
                 event.x, event.y, 0, self.widget3d.frame.width,
                 self.widget3d.frame.height)
+            cam_vox = pos2idx(self._min_bound, cam_pos, self._vs)
             dist_pos = self.widget3d.scene.camera.unproject(
-                event.x, event.y, 0.9995, self.widget3d.frame.width,
+                event.x, event.y, 0.99999, self.widget3d.frame.width,
                 self.widget3d.frame.height)
-            bnd_vox = self._get_nearest_bounding_box_voxel((cam_pos, dist_pos))
-            target_vox = vr.check_intersection(bnd_vox,
-                pos2idx(self._min_bound, dist_pos, self._vs),
-                self._grid)
+            dist_vox = pos2idx(self._min_bound, dist_pos, self._vs)
+            bnd_vox = self._get_nearest_bounding_box_voxel((cam_vox, dist_vox))
+            target_vox = vr.check_intersection(bnd_vox, dist_vox ,self._grid)
             if target_vox is not None:
-                world = idx2pos(self._min_bound, target_vox[0], self._vs)
+                world = idx2pos(self._min_bound, target_vox, self._vs)
 
                 def update_geometries():
                     mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)

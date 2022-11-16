@@ -54,11 +54,11 @@ def main():
             marks += [position.target.mark]
             if position.target.transfer == dl.Transfer.DESTINATE:
                 stop = asp.same_point_cond
-                mp = lambda c, n: 0
+                asp.H = 1
                 last_color = [1, 0, 0]
             else:
                 stop = asp.visibility_cond
-                mp = asp.plane_move_priority
+                asp.H = 70
                 last_color = [0, 0, 1]
             target_voxel = pos2idx(min_bound,
                 position.target.mark.get_center(),
@@ -69,7 +69,7 @@ def main():
                 start_voxel = route[1] + 1
             tmp = occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)]
             occupancy_grid[tuple(start_voxel)] = occupancy_grid[tuple(target_voxel)] = 0
-            graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop, mp)
+            graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop)
             occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
             route = get_route(graph, min_bound, vs, target_voxel)
             #mm.write_waypoints(project_dir, position.target.name + "_route"

@@ -9,12 +9,12 @@ from utils.geometry.distances import sqr_dist
 height_step_priority = 1
 obstacle_cost = 10.0
 obstacle_check_depth = 0
-observation_range = 40
+observation_range = 50
 
 D1 = 10
 D2 = 14
 D3 = 17
-H = 1
+H = 30
 
 def heuristics(next, end):
     d = np.abs(next - end)

@@ -46,7 +46,7 @@ def main():
         app.run()
         position = scene.targets
         assert position is not None and position.target is not None, "It must be set 2 points atleast"
-        start_height = position.mark.get_center()[2] - vs / 2  ## DO NOT DELETE
+        start_height = position.mark.get_center()[2] - vs / 2  ## vs / 2 means the takeoff altitude
 
         line_sets = []
         marks = [position.mark]
@@ -80,8 +80,8 @@ def main():
             position = position.target
 
         o3d.visualization.draw_geometries([voxel_grid] + line_sets + marks)
-        #menu.write_points_dialogue(info.project_dir, "mission",
-        #    full_route + (info.shift[0], info.shift[1], -start_height))
+        menu.write_points_dialogue(info.project_dir, "mission",
+            np.array(full_route) + (info.shift[0], info.shift[1], -start_height))
 
 if __name__ == '__main__':
     main()

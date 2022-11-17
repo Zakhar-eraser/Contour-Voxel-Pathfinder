@@ -45,11 +45,12 @@ def main():
         scene = visualizer.PointsSelectorApp(voxel_grid, occupancy_grid)
         app.run()
         position = scene.targets
-        start_height = position.mark.get_center()[2]  ## DO NOT DELETE
         assert position is not None and position.target is not None, "It must be set 2 points atleast"
+        start_height = position.mark.get_center()[2] - vs / 2  ## DO NOT DELETE
 
         line_sets = []
         marks = [position.mark]
+        full_route = []
         while position.target is not None:
             marks += [position.target.mark]
             if position.target.transfer == dl.Transfer.DESTINATE:
@@ -58,7 +59,7 @@ def main():
                 last_color = [1, 0, 0]
             else:
                 stop = asp.visibility_cond
-                asp.H = 70
+                asp.H = 1
                 last_color = [0, 0, 1]
             target_voxel = pos2idx(min_bound,
                 position.target.mark.get_center(),
@@ -72,12 +73,15 @@ def main():
             graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop)
             occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
             route = get_route(graph, min_bound, vs, target_voxel)
-            #mm.write_waypoints(project_dir, position.target.name + "_route"
-            #    , route + info.shift - (0, 0, start_height))
             line_sets += [make_route_lines(route, last_color, info.voxel_size)]
+            if position.target.transfer == dl.Transfer.OBSERVE:
+                route.pop(0)
+            full_route += route
             position = position.target
 
         o3d.visualization.draw_geometries([voxel_grid] + line_sets + marks)
+        #menu.write_points_dialogue(info.project_dir, "mission",
+        #    full_route + (info.shift[0], info.shift[1], -start_height))
 
 if __name__ == '__main__':
     main()

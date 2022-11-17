@@ -3,6 +3,7 @@ import os
 import pickle
 import structures.map_info as info
 from os.path import join
+from utils.map_manager import write_waypoints
 
 new_project = "[New project]"
 choosing_project = "Choose project to open:"
@@ -52,3 +53,16 @@ def open_or_create_project_dialogue():
         print(wrong_format)
     
     return inf
+
+def write_points_dialogue(path, name, route):
+    cont = True
+    while cont:
+        print("Save found route to .waypoints file? [y/n]")
+        ans = input()
+        if ans == "y":
+            cont = False
+            write_waypoints(path, name, route)
+        elif ans == "n":
+            cont = False
+        else:
+            print("'y' or 'n' expecting")

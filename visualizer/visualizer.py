@@ -125,7 +125,6 @@ class PointsSelectorApp:
         if event.type == gui.KeyEvent.Type.DOWN:
             if self.lock_geom:
                 mat = rendering.MaterialRecord()
-                mat.shader = "defaultLit"
 
                 def update_gui():
                     name = self.last_target.name
@@ -133,6 +132,8 @@ class PointsSelectorApp:
                         self.lock_geom = False
                         self.info.text = "Adding new target"
                         if self.last_target.origin is not None:
+                            mat.shader = "unlitLine"
+                            mat.line_width = 5
                             geometry = o3d.geometry.LineSet(
                                 points=o3d.utility.Vector3dVector(
                                     (self.last_target.mark.get_center(),
@@ -144,6 +145,7 @@ class PointsSelectorApp:
                             geometry = self.targets.mark
                             name = self.targets.name
                     else:
+                        mat.shader = "defaultLit"
                         geometry = self.last_target.mark
                         name = self.last_target.name
                         if event.key == gui.KeyName.W:

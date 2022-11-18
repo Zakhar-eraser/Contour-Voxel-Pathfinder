@@ -80,6 +80,7 @@ def main():
             position = position.target
 
         o3d.visualization.draw_geometries([voxel_grid] + line_sets + marks)
+        menu.use_utm_coordinates_dialogue()
         menu.write_points_dialogue(info.project_dir, "mission",
             np.array(full_route) + (info.shift[0], info.shift[1], -start_height))
 

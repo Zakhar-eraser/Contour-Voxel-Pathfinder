@@ -11,6 +11,12 @@ map_path = "Enter path of a new project`s map ply file:"
 voxel_size = "Enter map subsampling voxel size:"
 wrong_range = "There are no projects with such index"
 wrong_format = "Expected an integer, but entered something else"
+accept = "y"
+decline = "n"
+accept_or_decline = f"[{accept}/{decline}]"
+save_waypoints = f"Save found route to .waypoints file?"
+wrong_answer_notice = f"'{accept}' or '{decline}' expecting"
+ask_for_gps_reference = "Do pointcloud GPS referenced?"
 
 def create_project_dialogue():
     inf = info.Info()
@@ -54,15 +60,28 @@ def open_or_create_project_dialogue():
     
     return inf
 
-def write_points_dialogue(path, name, route):
+def acceptance(acc_conseq, dec_conseq = lambda: None):
     cont = True
+    print(accept_or_decline)
     while cont:
-        print("Save found route to .waypoints file? [y/n]")
         ans = input()
         if ans == "y":
             cont = False
-            write_waypoints(path, name, route)
+            acc_conseq()
         elif ans == "n":
             cont = False
+            dec_conseq()
         else:
-            print("'y' or 'n' expecting")
+            print(wrong_answer_notice)
+
+def write_points_dialogue(path, name, route):
+    print(save_waypoints, end=' ')
+    acceptance(lambda: write_waypoints(path, name, route))
+
+def use_utm_coordinates_dialogue():
+    print(ask_for_gps_reference, end=' ')
+    def acc():
+        mm.gps_ref_use = True
+    def dec():
+        mm.gps_ref_use = False
+    acceptance(acc, dec)

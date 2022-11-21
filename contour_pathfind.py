@@ -60,7 +60,7 @@ def main():
                 last_color = [1, 0, 0]
             else:
                 stop = asp.visibility_cond
-                asp.H = 1
+                asp.H = 70
                 last_color = [0, 0, 1]
             target_voxel = pos2idx(min_bound,
                 position.target.mark.get_center(),
@@ -68,7 +68,7 @@ def main():
             if position.transfer == dl.Transfer.DESTINATE or position.transfer == None:
                 start_voxel = pos2idx(min_bound, position.mark.get_center(), vs)
             else:
-                start_voxel = route[1] + 1
+                start_voxel = pos2idx(min_bound, route[0], vs)
             tmp = occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)]
             occupancy_grid[tuple(start_voxel)] = occupancy_grid[tuple(target_voxel)] = 0
             graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop)

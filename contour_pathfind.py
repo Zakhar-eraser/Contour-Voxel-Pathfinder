@@ -34,6 +34,7 @@ def make_route_lines(route, last_color, voxel_size):
 def main():
     app = gui.Application.instance
     app.initialize()
+    mm.init_project_structure()
     info = menu.open_or_create_project_dialogue()
     if info.project_dir is not None:
         pcd = o3d.io.read_point_cloud(join(info.project_dir, mm.pc_file))

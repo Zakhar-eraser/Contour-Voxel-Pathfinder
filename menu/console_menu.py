@@ -32,6 +32,7 @@ def create_project_dialogue():
 def open_or_create_project_dialogue():
     inf = info.Info()
     projects_list = [new_project]
+        
     for project in os.listdir(mm.maps_dir):
         project_dir = join(mm.maps_dir, project)
         if mm.check_project_consistence(project_dir):

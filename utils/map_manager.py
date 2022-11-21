@@ -19,6 +19,9 @@ map_occupancy_grid = "occupancy_grid.npy"
 
 gps_ref_use = True
 
+def init_project_structure():
+    if not exists(maps_dir): os.mkdir(maps_dir)
+
 def hash(path):
     md5_hash = hashlib.md5()
     with open(path,"rb") as f:
@@ -30,7 +33,6 @@ def create_project(path, voxel_size):
     inf = info.Info()
     if exists(path):
         filename = os.path.splitext(os.path.basename(path))[0]
-        if not exists(maps_dir): os.mkdir(maps_dir)
         project_dir = maps_dir + filename + '/'
         file_path = project_dir + pc_info_file
 

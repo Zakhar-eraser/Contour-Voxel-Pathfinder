@@ -19,7 +19,8 @@ Loading and creating app`s projects realized via console dialogues. Dialogues se
 1. Select start point, which realized by green sphere in visualization, with CTRL + LEFT BUTTON MOUSE click on a desired voxel. If box with "stop when observable" title is checked end point of pathfinder algorithm will be changed to 'target observable from current position'.
 If such mode turned on pathfinder will prefer moves in horizontal plane. The main idea of that function is to find nearest to such position, from which it able to observe target position, on a safe altitude.
 2. Move sphere in horizontal plane by keyboard ARROWS. Change sphere altitude by keyboard buttons W and S.
-3. When it`s done close the window of visualizer.
+3. Remove targets with BACKSPACE if it useless. Start point cannot be removed!
+4. When it`s done close the window of visualizer.
 ## Found route visualization
 ![Open3D 21 11 2022 14_14_55](https://user-images.githubusercontent.com/57917936/203045995-fcfb8b97-a865-4d98-b28f-8adae83b8562.png)
 

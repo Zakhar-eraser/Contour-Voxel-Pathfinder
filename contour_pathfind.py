@@ -19,17 +19,26 @@ def get_route(graph, min_bound, voxel_size, end):
     route.append(idx2pos(min_bound, cur, voxel_size))
     return route
 
-def make_route_lines(route, last_color, voxel_size):
-    points = route * voxel_size
-    lines = np.arange(len(points) - 1)[:, np.newaxis]
+def make_route_lines(route, last_color):
+    lines = np.arange(len(route) - 1)[:, np.newaxis]
     lines = np.concatenate((lines, lines + 1), axis=1)
     colors = [[1, 0, 0] for i in range(len(lines) - 1)]
     colors.insert(0, last_color)
     line_set = o3d.geometry.LineSet(
-        points=o3d.utility.Vector3dVector(points),
+        points=o3d.utility.Vector3dVector(route),
         lines=o3d.utility.Vector2iVector(lines))
     line_set.colors = o3d.utility.Vector3dVector(colors)
     return line_set
+
+def optimize(route_idx, min_hor_idx_cnt):
+    route_idx_opt = []
+    prev_line_idx = []
+    cur_line_idx = []
+    mode = 1
+    for _ in range(len(route_idx)):
+        if mode == 0:
+            
+            if route_idx[]
 
 def main():
     app = gui.Application.instance
@@ -74,7 +83,7 @@ def main():
             graph = asp.find_path_A_star(occupancy_grid, start_voxel, target_voxel, stop)
             occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
             route = get_route(graph, min_bound, vs, target_voxel)
-            line_sets += [make_route_lines(route, last_color, info.voxel_size)]
+            line_sets += [make_route_lines(route, last_color)]
             if position.target.transfer == dl.Transfer.OBSERVE:
                 route.pop(0)
             full_route += route

@@ -142,8 +142,18 @@ def xyzStep(pos, cur_voxel, steps, start_pos, bnds, dds):
         pos = posXZ
     return checks
 
-def check_intersection(start_voxel, target_voxel, occupancy_grid):
-    inter_vox = None
+def check_intersection(start_voxel, target_voxel, grid):
+    voxels = raycast(start_voxel, target_voxel, lambda x: grid[tuple(x)])
+    if voxels is None:
+        voxel = None
+    else:
+        voxel = voxels[0]
+    return voxel
+
+#def check_
+
+def raycast(start_voxel, target_voxel, collision_cond):
+    inter_vox = []
     cur_voxel = np.copy(start_voxel)
     pos = np.copy(start_voxel)
     dX = target_voxel[0] - start_voxel[0]
@@ -180,9 +190,9 @@ def check_intersection(start_voxel, target_voxel, occupancy_grid):
         step_fun = xyzStep
         dds = (dX/dY, dX/dZ, dY/dX, dY/dZ, dZ/dX, dZ/dY)
     
-    while (inter_vox is None) and (not np.array_equal(cur_voxel, target_voxel)):
+    while (len(inter_vox) == 0) and (not np.array_equal(cur_voxel, target_voxel)):
         check_voxels = step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
         for vox in check_voxels:
-            if occupancy_grid[tuple(vox)]:
+            if collision_cond(vox):
                 inter_vox = vox
     return inter_vox

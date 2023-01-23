@@ -8,3 +8,6 @@ maps/
 build/
 *.spec
 dist/
+*.exe
+venv/
+test.py

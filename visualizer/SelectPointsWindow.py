@@ -170,11 +170,11 @@ class PointsSelectorApp:
                 return gui.Widget.EventCallbackResult.HANDLED
             else:
                 def update_gui():
-                    if event.key == gui.BACKSPACE and self.last_target.origin is not None:
+                    if event.key == gui.BACKSPACE and self.last_target is not None: ## Возможность удалять старт
                         self.widget3d.scene.remove_geometry(self.last_target.name + "_line")
                         self.widget3d.scene.remove_geometry(self.last_target.name)
                         self.last_target = self.last_target.origin
-                        self.last_target.target = None
+                        if self.last_target is not None: self.last_target.target = None ## Изменено вместе с верхним
                     else:
                         return gui.Widget.EventCallbackResult.IGNORED 
                 gui.Application.instance.post_to_main_thread(

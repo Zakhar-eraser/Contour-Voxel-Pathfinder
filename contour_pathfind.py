@@ -10,7 +10,8 @@ import menu.console_menu as menu
 import structures.destination_list as dl
 from utils.grids.occupancy_grid import pos2idx
 from structures.route import Route
-from utils.grids.occupancy_grid import vect_idx2pos
+from structures.route import route_idx2pos
+from structures.route import route2list
 
 def graph2list(graph, end):
     cur = end
@@ -33,8 +34,6 @@ def graph2list(graph, end):
 #            if route_idx[]
 
 def main():
-    app = gui.Application.instance
-    app.initialize()
     mm.init_project_structure()
     info = menu.open_or_create_project_dialogue()
     if info.project_dir is not None:
@@ -42,16 +41,16 @@ def main():
         voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, info.voxel_size)
         vs = voxel_grid.voxel_size
         min_bound = voxel_grid.get_min_bound()
-        with open(info.project_dir + mm.map_occupancy_grid, 'rb') as grid:
-            occupancy_grid = np.load(grid)
+        occupancy_grid = mm.read_grid(info.project_dir)
+        app = gui.Application.instance
+        app.initialize()
         scene = PointsSelectorApp(voxel_grid, occupancy_grid)
         app.run()
         position = scene.targets
         assert position is not None and position.target is not None, "It must be set 2 points atleast"
+        mm.write_targets(info.project_dir, position)
         start_height = position.mark.get_center()[2] - vs / 2  ## vs / 2 means the takeoff altitude
 
-        #line_sets = []
-        #marks = [position.mark]
         route_idx_root = Route()
         route_idx = route_idx_root
         while position.target is not None:
@@ -81,12 +80,11 @@ def main():
                 route_idx.next_point.point = path_idx.pop()
             route_idx = route_idx.next_point
             position = position.target
-
-
         
+        route = route_idx2pos(min_bound, route_idx, vs)
         menu.use_utm_coordinates_dialogue()
         menu.write_points_dialogue(info.project_dir, "mission",
-            np.array(full_route) + (info.shift[0], info.shift[1], -start_height))
+            np.array(route2list(route)) + (info.shift[0], info.shift[1], -start_height))
 
 if __name__ == '__main__':
     main()

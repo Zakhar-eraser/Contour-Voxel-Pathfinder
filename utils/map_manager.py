@@ -16,8 +16,26 @@ mission_prefix = "mission_"
 pc_file = "map.ply"
 pc_info_file = "map.info"
 map_occupancy_grid = "occupancy_grid.npy"
+targets_file = "map.targets"
 
 gps_ref_use = True
+
+def read_file(project_dir, file_dir, load):
+    with open(join(project_dir, file_dir), "rb") as file:
+        return load(file)
+
+def write_file(project_dir, file_dir, targets, dump):
+    with open(join(project_dir, file_dir), "wb") as file:
+        dump(targets, file)
+
+def read_targets(project_dir):
+    return read_file(project_dir, targets_file, lambda x: pickle.load(x))
+
+def write_targets(project_dir, targets):
+    write_file(project_dir, targets_file, targets, lambda x, y: pickle.dump(x, y))
+
+def read_grid(project_dir):
+    return read_file(project_dir, map_occupancy_grid, lambda x: np.load)
 
 def init_project_structure():
     if not exists(maps_dir): os.mkdir(maps_dir)

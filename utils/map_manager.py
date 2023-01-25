@@ -29,13 +29,13 @@ def write_file(project_dir, file_dir, targets, dump):
         dump(targets, file)
 
 def read_targets(project_dir):
-    return read_file(project_dir, targets_file, lambda x: pickle.load(x))
+    return read_file(project_dir, targets_file, pickle.load)
 
 def write_targets(project_dir, targets):
-    write_file(project_dir, targets_file, targets, lambda x, y: pickle.dump(x, y))
+    write_file(project_dir, targets_file, targets, pickle.dump)
 
 def read_grid(project_dir):
-    return read_file(project_dir, map_occupancy_grid, lambda x: np.load)
+    return read_file(project_dir, map_occupancy_grid, np.load)
 
 def init_project_structure():
     if not exists(maps_dir): os.mkdir(maps_dir)

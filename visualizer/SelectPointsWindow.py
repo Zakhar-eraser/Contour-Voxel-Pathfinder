@@ -2,7 +2,7 @@ import numpy as np
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import open3d as o3d
-from structures.destination_list import Path
+from structures.destination_list import Targets
 from structures.destination_list import Transfer
 import utils.voxel_raycast as vr
 from utils.grids.occupancy_grid import pos2idx
@@ -180,7 +180,10 @@ class PointsSelectorApp:
                     self._widget3d.scene.remove_geometry(self._last_target.name + "_line")
                     self._widget3d.scene.remove_geometry(self._last_target.name)
                     self._last_target = self._last_target.origin
-                    if self._last_target is not None: self._last_target.target = None ## Изменено вместе с верхним
+                    if self._last_target is not None:
+                        self._last_target.target = None
+                    else:
+                        self.targets = None
                 else:
                     return gui.Widget.EventCallbackResult.IGNORED 
                 return gui.Widget.EventCallbackResult.HANDLED
@@ -199,7 +202,7 @@ class PointsSelectorApp:
                 self._widget3d.frame.height)
             dist_vox = pos2idx(self._min_bound, dist_pos, self._vs)
             bnd_vox = self._get_nearest_bounding_box_voxel((cam_vox, dist_vox))
-            target_vox = vr.check_intersection(bnd_vox, dist_vox ,self._grid)
+            target_vox = vr.raycast(bnd_vox, dist_vox, self._grid)
             if target_vox is not None:
                 world = idx2pos(self._min_bound, target_vox, self._vs)
 
@@ -213,7 +216,7 @@ class PointsSelectorApp:
                     if self.targets is None:
                         mark.paint_uniform_color((0, 1, 0))
                         name = "start"
-                        self._last_target = self.targets = Path(mark, name)
+                        self._last_target = self.targets = Targets(mark, name)
                     else:
                         if self._transfer_type == Transfer.DESTINATE:
                             mark_color = (1, 0, 0)
@@ -225,7 +228,7 @@ class PointsSelectorApp:
                             self._obs_count += 1
                         
                         mark.paint_uniform_color(mark_color)
-                        self._last_target = self._last_target.add(Path(mark, name), self._transfer_type)
+                        self._last_target = self._last_target.add(Targets(mark, name), self._transfer_type)
                     
                     self._info.text = "Move position"
                     self._window.set_needs_layout()

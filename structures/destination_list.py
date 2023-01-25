@@ -5,7 +5,7 @@ class Transfer(Enum):
     OBSERVE = 0
     DESTINATE = 1
 
-class Path:
+class Targets:
     """Linked List with position and transfer type properties"""
 
     def __init__(self, mark, name):

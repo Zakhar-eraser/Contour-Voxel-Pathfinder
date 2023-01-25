@@ -62,7 +62,7 @@ def same_point_cond(current, target, grid):
 
 def visibility_cond(current, target, grid):
     return observation_range * observation_range > sqr_dist(current, target) and (
-        vr.check_intersection(current, target, grid) is None)
+        vr.raycast(current, target, grid) is None)
 
 def find_path_A_star(grid, start, end,
     stop_cond = same_point_cond):

@@ -1,5 +1,7 @@
 import numpy as np
 import open3d as o3d
+from structures.destination_list import Transfer
+from structures.destination_list import Targets
 
 def create_mark(position, size, color):
     mark = o3d.geometry.TriangleMesh.create_sphere(size)
@@ -42,3 +44,24 @@ def make_route_geometry(route, line_width, marker_size):
         route = route.next_point
 
     return [[line_sets, line_material], [spheres, marker_material]]
+
+def route2targets(route, marker_size):
+    targets_root = Targets(create_mark(route.point, marker_size, [0, 1, 0]), "start")
+    targets = targets_root
+    obs_count = 0
+    dest_count = 0
+    while route is not None:
+        for obs_tgt in route.observe_points:
+            targets.target = Targets(create_mark(obs_tgt, marker_size, [0, 0, 1]), "obs_" + str(obs_count))
+            obs_count += 1
+            targets = targets.target
+            targets.transfer = Transfer.OBSERVE
+        if route.next_point is not None and route.next_point.point is not None:
+            targets.target = Targets(create_mark(route.next_point.point, marker_size, [1, 0, 0]), "dest_" + str(dest_count))
+            dest_count += 1
+            targets = targets.target
+        route = route.next_point
+    
+    return targets_root
+    
+

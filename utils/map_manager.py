@@ -21,8 +21,12 @@ targets_file = "map.targets"
 gps_ref_use = True
 
 def read_file(project_dir, file_dir, load):
-    with open(join(project_dir, file_dir), "rb") as file:
-        return load(file)
+    struct = None
+    directory = join(project_dir, file_dir)
+    if exists(directory):
+        with open(directory, "rb") as file:
+            struct = load(file)
+    return struct
 
 def write_file(project_dir, file_dir, targets, dump):
     with open(join(project_dir, file_dir), "wb") as file:

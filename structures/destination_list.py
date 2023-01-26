@@ -8,9 +8,10 @@ class Transfer(Enum):
 class Targets:
     """Linked List with position and transfer type properties"""
 
-    def __init__(self, mark, name):
+    def __init__(self, mark, name, id):
         self.mark = mark
         self.name = name
+        self.id = id
         self.transfer = None
         self.target = None
         self.origin = None

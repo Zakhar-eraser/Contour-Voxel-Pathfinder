@@ -1,3 +1,4 @@
+import numpy as np
 from utils.grids.occupancy_grid import idx2pos
 from utils.grids.occupancy_grid import vect_idx2pos
 from structures.destination_list import Transfer
@@ -16,23 +17,23 @@ def route_idx2pos(min_bound, route_idx, voxel_size):
     proute = route
     while route_idx is not None:
         proute.point = idx2pos(min_bound, route_idx.point, voxel_size)
-        proute.visit_points = vect_idx2pos(min_bound, route_idx.visit_points, voxel_size)
-        proute.observe_points = vect_idx2pos(min_bound, route_idx.observe_points, voxel_size)
+        proute.visit_points = list(vect_idx2pos(min_bound, route_idx.visit_points, voxel_size))
+        proute.observe_points = list(vect_idx2pos(min_bound, route_idx.observe_points, voxel_size))
         route_idx = route_idx.next_point
-        if route_idx.next_point is not None:
+        if route_idx is not None:
             proute.next_point = Route()
             proute = proute.next_point
     
     return route
 
-def route2list(route):
+def route2array(route):
     points = []
     while route is not None:
         points.append(route.point)
         points += route.visit_points
         route = route.next_point
     
-    return points
+    return np.array(points)
 
 def targets2route(targets):
     route_root = Route()

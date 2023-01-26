@@ -46,19 +46,20 @@ def make_route_geometry(route, line_width, marker_size):
     return [[line_sets, line_material], [spheres, marker_material]]
 
 def route2targets(route, marker_size):
-    targets_root = Targets(create_mark(route.point, marker_size, [0, 1, 0]), "start")
-    targets = targets_root
-    obs_count = 0
-    dest_count = 0
+    targets_root = None
+    if route is not None:
+        targets_root = Targets(create_mark(route.point, marker_size, [0, 1, 0]), "start", 0)
+        targets = targets_root
+    marks_count = 1
     while route is not None:
         for obs_tgt in route.observe_points:
-            targets.target = Targets(create_mark(obs_tgt, marker_size, [0, 0, 1]), "obs_" + str(obs_count))
-            obs_count += 1
+            targets.target = Targets(create_mark(obs_tgt, marker_size, [0, 0, 1]), "mark_" + str(marks_count), marks_count)
+            marks_count += 1
             targets = targets.target
             targets.transfer = Transfer.OBSERVE
         if route.next_point is not None and route.next_point.point is not None:
-            targets.target = Targets(create_mark(route.next_point.point, marker_size, [1, 0, 0]), "dest_" + str(dest_count))
-            dest_count += 1
+            targets.target = Targets(create_mark(route.next_point.point, marker_size, [1, 0, 0]), "mark_" + str(marks_count), marks_count)
+            marks_count += 1
             targets = targets.target
         route = route.next_point
     

@@ -64,8 +64,9 @@ class PointsSelectorApp:
         self._last_target = self.targets
         self._transfer_type = Transfer.DESTINATE
         self._lock_geom = False
-        self._dest_count = 0
-        self._obs_count = 0
+        #self._dest_count = 0
+        #self._obs_count = 0
+        self._start_height = 0
 
         self._vs = vx.voxel_size
         self._bounding_box = vx.get_axis_aligned_bounding_box()
@@ -171,12 +172,14 @@ class PointsSelectorApp:
                         geometry.translate((0, -self._vs, 0))
                     else:
                         return gui.Widget.EventCallbackResult.IGNORED
+                    
+                    self._info.text = "Height: " + str(self._start_height)
                     self._widget3d.scene.remove_geometry(name)
                 
                 self._widget3d.scene.add_geometry(name, geometry, mat)
                 return gui.Widget.EventCallbackResult.HANDLED
             else:
-                if event.key == gui.BACKSPACE and self._last_target is not None: ## Возможность удалять старт
+                if event.key == gui.BACKSPACE and self._last_target is not None:
                     self._widget3d.scene.remove_geometry(self._last_target.name + "_line")
                     self._widget3d.scene.remove_geometry(self._last_target.name)
                     self._last_target = self._last_target.origin
@@ -206,37 +209,33 @@ class PointsSelectorApp:
             if target_vox is not None:
                 world = idx2pos(self._min_bound, target_vox, self._vs)
 
-                def update_geometries():
-                    mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
-                    mark.compute_vertex_normals()
-                    mark.translate(world)
-                    mat = rendering.MaterialRecord()
-                    mat.shader = "defaultLit"
+                mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
+                mark.compute_vertex_normals()
+                mark.translate(world)
+                mat = rendering.MaterialRecord()
+                mat.shader = "defaultLit"
 
-                    if self.targets is None:
-                        mark.paint_uniform_color((0, 1, 0))
-                        name = "start"
-                        self._last_target = self.targets = Targets(mark, name)
+                if self.targets is None:
+                    mark.translate((0, 0, self._vs / 2 + 0.05))
+                    self._start_height = mark.get_center()[2]
+                    mark.paint_uniform_color((0, 1, 0))
+                    name = "start"
+                    self._last_target = self.targets = Targets(mark, name, 0)
+                else:
+                    self._start_height = world[2] - self._start_height
+                    name = "mark_" + str(self._last_target.id + 1)
+                    if self._transfer_type == Transfer.DESTINATE:
+                        mark_color = (1, 0, 0)
                     else:
-                        if self._transfer_type == Transfer.DESTINATE:
-                            mark_color = (1, 0, 0)
-                            name = "dest_" + str(self._dest_count)
-                            self._dest_count += 1
-                        else:
-                            mark_color = (0, 0, 1)
-                            name = "obs_" + str(self._obs_count)
-                            self._obs_count += 1
-                        
-                        mark.paint_uniform_color(mark_color)
-                        self._last_target = self._last_target.add(Targets(mark, name), self._transfer_type)
+                        mark_color = (0, 0, 1)
                     
-                    self._info.text = "Move position"
-                    self._window.set_needs_layout()
+                    mark.paint_uniform_color(mark_color)
+                    self._last_target = self._last_target.add(Targets(mark, name, self._last_target.id + 1), self._transfer_type)
+                
+                self._info.text = "Height: " + str(self._start_height)
+                self._window.set_needs_layout()
 
-                    self._widget3d.scene.add_geometry(name, mark, mat)
-
-                gui.Application.instance.post_to_main_thread(
-                    self._window, update_geometries)
+                self._widget3d.scene.add_geometry(name, mark, mat)
 
                 self._lock_geom = True
 

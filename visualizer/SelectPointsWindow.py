@@ -173,7 +173,8 @@ class PointsSelectorApp:
                         transfer = Transfer.START
                         selected.add(Targets(
                             create_mark(
-                                selected.mark.get_center() + (0, 0, self._vs), self._vs / 2 + 0.1, Transfer.VISIT),
+                                selected.mark.get_center() + (0, 0, self._vs),
+                                self._vs / 2 + 0.1, MarkerColors.get_color(Transfer.VISIT)),
                                 "mark_1", 1), Transfer.VISIT)
                         takeoff_marker = selected.target
                         self._selected_target = takeoff_marker
@@ -287,5 +288,4 @@ class PointsSelectorApp:
                     self._widget3d.scene.remove_geometry(editing_target.name)
                     editing_target.mark.paint_uniform_color(MarkerColors.SELECTED)
                     self._widget3d.scene.add_geometry(editing_target.name, editing_target.mark, mat)
-            else:
-                return gui.Widget.EventCallbackResult.IGNORED
+        return gui.Widget.EventCallbackResult.IGNORED

@@ -21,11 +21,11 @@ class MarkerColors:
             color = [0, 0, 0]
         return color
 
-def create_mark(position, size, transfer):
+def create_mark(position, size, color):
     mark = o3d.geometry.TriangleMesh.create_sphere(size)
     mark.compute_vertex_normals()
     mark.translate(position)
-    mark.paint_uniform_color(MarkerColors.get_color(transfer))
+    mark.paint_uniform_color(color)
     return mark
 
 def create_line(start, end, color):

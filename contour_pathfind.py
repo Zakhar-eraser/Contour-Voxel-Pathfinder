@@ -8,7 +8,9 @@ from visualizer.SelectPointsWindow import PointsSelectorApp
 import utils.map_manager as mm
 import menu.console_menu as menu
 from structures.destination_list import Transfer
-from utils.grids.occupancy_grid import pos2idx
+from utils.grids.occupancy_grid import qpos2idx
+from utils.grids.occupancy_grid import set_static_min_bound
+from utils.grids.occupancy_grid import set_static_voxel_size
 from structures.route import Route
 from structures.route import route_idx2pos
 from structures.route import route2array
@@ -42,7 +44,8 @@ def main():
         pcd = o3d.io.read_point_cloud(join(info.project_dir, mm.pc_file))
         voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, info.voxel_size)
         vs = voxel_grid.voxel_size
-        min_bound = voxel_grid.get_min_bound()
+        set_static_min_bound(voxel_grid.get_min_bound())
+        set_static_voxel_size(vs)
         occupancy_grid = mm.read_grid(info.project_dir)
         app = gui.Application.instance
         app.initialize()
@@ -51,23 +54,21 @@ def main():
         targets = scene.targets
         assert targets is not None and targets.target is not None, "It must be set 2 points atleast"
         #mm.write_targets(info.project_dir, targets2route(targets))
-        start_height = targets.mark.get_center()[2]  ## vs / 2 means the takeoff altitude
+        start_height = scene.start_height
 
         route_idx_root = Route()
-        route_idx_root.point = pos2idx(min_bound, targets.mark.get_center(), vs)
+        route_idx_root.point = qpos2idx(targets.mark.get_center())
         route_idx = route_idx_root
         while targets.target is not None:
-            if targets.target.transfer == Transfer.DESTINATE:
+            if targets.target.transfer == Transfer.VISIT:
                 stop = asp.same_point_cond
                 asp.H = 1
             else:
                 stop = asp.visibility_cond
                 asp.H = 70
-            target_voxel = pos2idx(min_bound,
-                targets.target.mark.get_center(),
-                vs)
-            if targets.transfer == Transfer.DESTINATE or targets.transfer == None:
-                start_voxel = pos2idx(min_bound, targets.mark.get_center(), vs)
+            target_voxel = targets.target.idx
+            if targets.transfer == Transfer.VISIT or targets.transfer == Transfer.START:
+                start_voxel = targets.idx
             else:
                 start_voxel = route_idx.point
             tmp = occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)]
@@ -76,7 +77,7 @@ def main():
             occupancy_grid[tuple(start_voxel)], occupancy_grid[tuple(target_voxel)] = tmp
             path_idx = graph2list(graph, target_voxel)
             if targets.target.transfer == Transfer.OBSERVE:
-                route_idx.observe_points += path_idx.pop()
+                route_idx.observe_points.append(path_idx.pop())
             if len(path_idx) > 1:
                 route_idx.next_point = Route()
                 path_idx.pop(0)
@@ -85,7 +86,7 @@ def main():
                 route_idx = route_idx.next_point
             targets = targets.target
         
-        route = route_idx2pos(min_bound, route_idx_root, vs)
+        route = route_idx2pos(route_idx_root)
         menu.use_utm_coordinates_dialogue()
         menu.write_points_dialogue(info.project_dir, "mission",
             route2array(route) + (info.shift[0], info.shift[1], -start_height))

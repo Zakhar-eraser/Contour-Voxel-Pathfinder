@@ -4,17 +4,23 @@ import open3d.visualization.rendering as rendering
 import open3d as o3d
 from structures.destination_list import Targets
 from structures.destination_list import Transfer
+from structures.destination_list import exists_idx
 import utils.voxel_raycast as vr
-from utils.grids.occupancy_grid import pos2idx
-from utils.grids.occupancy_grid import idx2pos
+from utils.grids.occupancy_grid import qidx2pos
+from utils.grids.occupancy_grid import qpos2idx
 from utils.geometry.line_plane_intersection import find_intersection
 from utils.geometry.distances import sqr_dist
+from visualizer.common.visualizer_geometry import MarkerColors
+from visualizer.common.visualizer_geometry import create_mark
+from visualizer.common.visualizer_geometry import create_line
+from copy import deepcopy
 
 class PointsSelectorApp:
 
     def __init__(self, voxel_grid, occupancy_grid, targets = None):
         vx = voxel_grid
         self._grid = occupancy_grid
+        self._grid_with_markers = deepcopy(occupancy_grid)
         app = gui.Application.instance
         self._window = app.create_window("Select points", 1024, 640)
         self._widget3d = gui.SceneWidget()
@@ -62,15 +68,12 @@ class PointsSelectorApp:
         self._widget3d.set_on_key(self._on_keyboard_widget3d)
         self.targets = targets
         self._last_target = self.targets
-        self._transfer_type = Transfer.DESTINATE
-        self._lock_geom = False
-        #self._dest_count = 0
-        #self._obs_count = 0
-        self._start_height = 0
+        self._selected_target = None
+        self._transfer_type = Transfer.VISIT
+        self.start_height = 0
 
         self._vs = vx.voxel_size
         self._bounding_box = vx.get_axis_aligned_bounding_box()
-        self._min_bound = self._bounding_box.min_bound
         self._shape = (self._bounding_box.get_extent() /
             self._vs).astype('int32')
     
@@ -128,54 +131,89 @@ class PointsSelectorApp:
         if show:
             self._transfer_type = Transfer.OBSERVE
         else:
-            self._transfer_type = Transfer.DESTINATE
+            self._transfer_type = Transfer.VISIT
     
     def _on_calc_clicked(self):
         gui.Application.instance.quit()
+    
+    def _move_marker(self, target, shift):
+        idx = tuple(target.idx)
+        self._grid_with_markers[idx] = self._grid[idx]
+        target.move(shift)
+        self._grid_with_markers[tuple(target.idx)]
+    
+    def _update_line(self, target, material):
+        origin = target.origin
+        name = target.name
+        self._widget3d.scene.remove_geometry(name)
+        line = create_line(origin.mark.get_center(),
+                           target.mark.get_center(),
+                           target.transfer)
+        self._widget3d.scene.add_geometry(name, line, material)
+
+    
+    def _update_marker_lines(self, target):
+        mat = rendering.MaterialRecord()
+        mat.shader = "unlitLine"
+        mat.line_width = 5
+        self._update_line(target, mat)
+        if target.target is not None: self._update_line(target.target, mat)
 
     def _on_keyboard_widget3d(self, event):
+        selected = self._selected_target
         if event.type == gui.KeyEvent.Type.DOWN:
-            if self._lock_geom:
+            if selected is not None:
                 mat = rendering.MaterialRecord()
-                name = self._last_target.name
+                mat.shader = "defaultLit"
+                name = selected.name
                 if event.key == gui.KeyName.ENTER:
-                    self._lock_geom = False
-                    self._info.text = "Adding new target"
-                    if self._last_target.origin is not None:
-                        mat.shader = "unlitLine"
-                        mat.line_width = 5
-                        geometry = o3d.geometry.LineSet(
-                            points=o3d.utility.Vector3dVector(
-                                (self._last_target.mark.get_center(),
-                                 self._last_target.origin.mark.get_center())),
-                            lines=o3d.utility.Vector2iVector([[0, 1]]))
-                        geometry.colors = o3d.utility.Vector3dVector([[1, 0, 0]])
-                        name += "_line"
+                    self._selected_target = None
+                    self._widget3d.scene.remove_geometry(name)
+                    if selected.transfer == Transfer.START:
+                        transfer = Transfer.START
+                        selected.add(Targets(
+                            create_mark(
+                                selected.mark.get_center() + (0, 0, self._vs), self._vs / 2 + 0.1, Transfer.VISIT),
+                                "mark_1", 1), Transfer.VISIT)
+                        takeoff_marker = selected.target
+                        self._selected_target = takeoff_marker
+                        self._widget3d.scene.add_geometry(takeoff_marker.name, takeoff_marker.mark, mat)
                     else:
-                        geometry = self.targets.mark
-                        name = self.targets.name
+                        transfer = selected.transfer
+                        self._update_marker_lines(selected, mat) 
+
+                    transfer = self._transfer_type
+                    selected.mark.paint_uniform_color(MarkerColors.get_color(transfer))
+                    selected.transfer = transfer
+                    geometry = selected.mark
+                    self._info.text = "Adding new target"
                 else:
                     mat.shader = "defaultLit"
-                    geometry = self._last_target.mark
-                    name = self._last_target.name
+                    geometry = self._selected_target.mark
+                    name = self._selected_target.name
                     if event.key == gui.KeyName.W:
-                        geometry.translate((0, 0, self._vs))
+                        self._move_marker(self._selected_target, (0, 0, self._vs))
                     elif event.key == gui.KeyName.S:
-                        geometry.translate((0, 0, -self._vs))
-                    elif event.key == gui.KeyName.LEFT:
-                        geometry.translate((-self._vs, 0, 0))
-                    elif event.key == gui.KeyName.RIGHT:
-                        geometry.translate((self._vs, 0, 0))
-                    elif event.key == gui.KeyName.UP:
-                        geometry.translate((0, self._vs, 0))
-                    elif event.key == gui.KeyName.DOWN:
-                        geometry.translate((0, -self._vs, 0))
+                        self._move_marker(self._selected_target, (0, 0, -self._vs))
+                    elif event.key == gui.KeyName.LEFT and self._selected_target.id != 1:
+                        self._move_marker(self._selected_target, (-self._vs, 0, 0))
+                    elif event.key == gui.KeyName.RIGHT and self._selected_target.id != 1:
+                        self._move_marker(self._selected_target, (self._vs, 0, 0))
+                    elif event.key == gui.KeyName.UP and self._selected_target.id != 1:
+                        self._move_marker(self._selected_target, (0, self._vs, 0))
+                    elif event.key == gui.KeyName.DOWN and self._selected_target.id != 1:
+                        self._move_marker(self._selected_target, (0, -self._vs, 0))
                     else:
                         return gui.Widget.EventCallbackResult.IGNORED
-                    
-                    self._info.text = "Height: " + str(self._start_height)
+
+                    if self._selected_target.origin is None:
+                        self.start_height = height = geometry.get_center()[2]
+                    else:
+                        height = geometry.get_center()[2] - self.start_height
+                    self._info.text = "Height: {:.2f}".format(height)
                     self._widget3d.scene.remove_geometry(name)
                 
+                self._window.set_needs_layout()
                 self._widget3d.scene.add_geometry(name, geometry, mat)
                 return gui.Widget.EventCallbackResult.HANDLED
             else:
@@ -192,52 +230,62 @@ class PointsSelectorApp:
                 return gui.Widget.EventCallbackResult.HANDLED
         return gui.Widget.EventCallbackResult.IGNORED
 
+    def _raycast(self, event, grid):
+        cam_pos = self._widget3d.scene.camera.unproject(
+            event.x, event.y, 0, self._widget3d.frame.width,
+            self._widget3d.frame.height)
+        cam_vox = qpos2idx(cam_pos)
+        dist_pos = self._widget3d.scene.camera.unproject(
+            event.x, event.y, 0.99999, self._widget3d.frame.width,
+            self._widget3d.frame.height)
+        dist_vox = qpos2idx(dist_pos)
+        bnd_vox = self._get_nearest_bounding_box_voxel((cam_vox, dist_vox))
+        return vr.raycast(bnd_vox, dist_vox, grid)
 
     def _on_mouse_widget3d(self, event):
-        if event.type == gui.MouseEvent.Type.BUTTON_DOWN and event.is_modifier_down(
-                gui.KeyModifier.CTRL) and (not self._lock_geom):
-            cam_pos = self._widget3d.scene.camera.unproject(
-                event.x, event.y, 0, self._widget3d.frame.width,
-                self._widget3d.frame.height)
-            cam_vox = pos2idx(self._min_bound, cam_pos, self._vs)
-            dist_pos = self._widget3d.scene.camera.unproject(
-                event.x, event.y, 0.99999, self._widget3d.frame.width,
-                self._widget3d.frame.height)
-            dist_vox = pos2idx(self._min_bound, dist_pos, self._vs)
-            bnd_vox = self._get_nearest_bounding_box_voxel((cam_vox, dist_vox))
-            target_vox = vr.raycast(bnd_vox, dist_vox, self._grid)
-            if target_vox is not None:
-                world = idx2pos(self._min_bound, target_vox, self._vs)
+        if event.type == gui.MouseEvent.Type.BUTTON_DOWN and self._selected_target is None:
+            if event.is_modifier_down(gui.KeyModifier.CTRL):
+                target_vox = self._raycast(event, self._grid)
+                if len(target_vox):
+                    world = qidx2pos(target_vox[0])
 
-                mark = o3d.geometry.TriangleMesh.create_sphere(self._vs / 2 + 0.1)
-                mark.compute_vertex_normals()
-                mark.translate(world)
-                mat = rendering.MaterialRecord()
-                mat.shader = "defaultLit"
+                    mark = create_mark(world, self._vs / 2 + 0.1, MarkerColors.SELECTED)
+                    mat = rendering.MaterialRecord()
+                    mat.shader = "defaultLit"
 
-                if self.targets is None:
-                    mark.translate((0, 0, self._vs / 2 + 0.05))
-                    self._start_height = mark.get_center()[2]
-                    mark.paint_uniform_color((0, 1, 0))
-                    name = "start"
-                    self._last_target = self.targets = Targets(mark, name, 0)
-                else:
-                    self._start_height = world[2] - self._start_height
-                    name = "mark_" + str(self._last_target.id + 1)
-                    if self._transfer_type == Transfer.DESTINATE:
-                        mark_color = (1, 0, 0)
+                    if self.targets is None:
+                        mark.translate((0, 0, self._vs / 2 + 0.001))
+                        self.start_height = height = mark.get_center()[2]
+                        name = "start"
+                        self._last_target = self.targets = Targets(mark, name, 0)
+                        self._last_target.transfer = Transfer.START
                     else:
-                        mark_color = (0, 0, 1)
-                    
-                    mark.paint_uniform_color(mark_color)
-                    self._last_target = self._last_target.add(Targets(mark, name, self._last_target.id + 1), self._transfer_type)
-                
-                self._info.text = "Height: " + str(self._start_height)
-                self._window.set_needs_layout()
+                        height = world[2] - self.start_height
+                        name = "mark_" + str(self._last_target.id + 1)
+                        self._last_target = self._last_target.add(Targets(mark, name, self._last_target.id + 1),
+                            self._transfer_type)
 
-                self._widget3d.scene.add_geometry(name, mark, mat)
+                    self._info.text = "Height: {:.2f}".format(height)
+                    self._window.set_needs_layout()
 
-                self._lock_geom = True
+                    self._grid_with_markers[tuple(self._last_target.idx)] = 1
+                    self._widget3d.scene.add_geometry(name, mark, mat)
 
-                return gui.Widget.EventCallbackResult.HANDLED
-        return gui.Widget.EventCallbackResult.IGNORED
+                    self._selected_target = self._last_target
+
+                    return gui.Widget.EventCallbackResult.HANDLED
+            elif event.is_modifier_down(gui.KeyModifier.SHIFT):
+                target_vox = self._raycast(event, self._grid_with_markers)
+                editing_target = None
+                for vox in target_vox:
+                    editing_target = exists_idx(self.targets, vox)
+                    if editing_target is not None: break
+                if editing_target is not None:
+                    mat = rendering.MaterialRecord()
+                    mat.shader = "defaultLit"
+                    self._selected_target = editing_target
+                    self._widget3d.scene.remove_geometry(editing_target.name)
+                    editing_target.mark.paint_uniform_color(MarkerColors.SELECTED)
+                    self._widget3d.scene.add_geometry(editing_target.name, editing_target.mark, mat)
+            else:
+                return gui.Widget.EventCallbackResult.IGNORED

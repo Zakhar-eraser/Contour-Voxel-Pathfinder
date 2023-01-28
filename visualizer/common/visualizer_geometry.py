@@ -3,12 +3,37 @@ import open3d as o3d
 from structures.destination_list import Transfer
 from structures.destination_list import Targets
 
-def create_mark(position, size, color):
+class MarkerColors:
+    """Dictonary of colors"""
+    VISIT = [1, 0, 0]
+    START = [0, 1, 0]
+    OBSERVE = [0, 0, 1]
+    SELECTED = [0.62, 0.17, 0.41]
+
+    def get_color(transfer_type):
+        if transfer_type == Transfer.VISIT:
+            color = MarkerColors.VISIT
+        elif transfer_type == Transfer.OBSERVE:
+            color = MarkerColors.OBSERVE
+        elif transfer_type == Transfer.START:
+            color = MarkerColors.START
+        else:
+            color = [0, 0, 0]
+        return color
+
+def create_mark(position, size, transfer):
     mark = o3d.geometry.TriangleMesh.create_sphere(size)
     mark.compute_vertex_normals()
     mark.translate(position)
-    mark.paint_uniform_color(color)
+    mark.paint_uniform_color(MarkerColors.get_color(transfer))
     return mark
+
+def create_line(start, end, color):
+    geometry = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector((start, end)),
+        lines=o3d.utility.Vector2iVector([[0, 1]]))
+    geometry.colors = o3d.utility.Vector3dVector([color])
+    return geometry
 
 def make_route_geometry(route, line_width, marker_size):
     line_material = o3d.visualization.rendering.MaterialRecord()
@@ -65,4 +90,8 @@ def route2targets(route, marker_size):
     
     return targets_root
     
-
+def get_lines_from_targets(targets, line_width):
+    line_material = o3d.visualization.rendering.MaterialRecord()
+    line_material.shader = "unlitLine"
+    line_material.line_width = line_width
+    

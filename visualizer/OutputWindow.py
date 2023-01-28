@@ -4,8 +4,8 @@ import open3d.visualization.rendering as rendering
 import open3d as o3d
 import structures.destination_list as dl
 import utils.voxel_raycast as vr
-from utils.grids.occupancy_grid import pos2idx
-from utils.grids.occupancy_grid import idx2pos
+from utils.grids.occupancy_grid import qpos2idx
+from utils.grids.occupancy_grid import qidx2pos
 from utils.geometry.line_plane_intersection import find_intersection
 from utils.geometry.distances import sqr_dist
 

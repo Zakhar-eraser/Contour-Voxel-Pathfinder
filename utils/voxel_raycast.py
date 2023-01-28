@@ -184,5 +184,5 @@ def raycast(start_voxel, target_voxel, grid):
         check_voxels = step_fun(pos, cur_voxel, steps, start_voxel, cur_voxel + B, dds)
         for vox in check_voxels:
             if grid[tuple(vox)]:
-                inter_vox = vox
+                inter_vox.append(vox)
     return inter_vox

@@ -1,7 +1,6 @@
 import numpy as np
 from utils.grids.occupancy_grid import qidx2pos
 from utils.grids.occupancy_grid import qvect_idx2pos
-from structures.destination_list import Transfer
 
 class Route:
     """List with array of points to destinate next point as value"""
@@ -34,19 +33,3 @@ def route2array(route):
         route = route.next_point
     
     return np.array(points)
-
-def targets2route(targets):
-    route_root = Route()
-    route = route_root
-    while targets is not None:
-        point = targets.mark.get_center()
-        if targets.transfer == Transfer.VISIT or targets.transfer is None:
-            route.point = point
-        else:
-            route.observe_points.append(point)
-        targets = targets.target
-        if targets is not None:
-            route.next_point = Route()
-            route = route.next_point
-    
-    return route_root

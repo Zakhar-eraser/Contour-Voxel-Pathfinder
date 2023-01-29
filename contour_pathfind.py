@@ -8,14 +8,14 @@ from visualizer.SelectPointsWindow import PointsSelectorApp
 import utils.map_manager as mm
 import menu.console_menu as menu
 from structures.destination_list import Transfer
+from structures.destination_list import get_writeble_targets
 from utils.grids.occupancy_grid import qpos2idx
 from utils.grids.occupancy_grid import set_static_min_bound
 from utils.grids.occupancy_grid import set_static_voxel_size
 from structures.route import Route
 from structures.route import route_idx2pos
 from structures.route import route2array
-from structures.route import targets2route
-from visualizer.common.visualizer_geometry import route2targets
+from visualizer.common.visualizer_geometry import get_targets
 
 def graph2list(graph, end):
     cur = end
@@ -49,11 +49,11 @@ def main():
         occupancy_grid = mm.read_grid(info.project_dir)
         app = gui.Application.instance
         app.initialize()
-        scene = PointsSelectorApp(voxel_grid, occupancy_grid, route2targets(mm.read_targets(info.project_dir), vs + 0.1))
+        scene = PointsSelectorApp(voxel_grid, occupancy_grid, get_targets(mm.read_targets(info.project_dir), vs + 0.1))
         app.run()
         targets = scene.targets
         assert targets is not None and targets.target is not None, "It must be set 2 points atleast"
-        #mm.write_targets(info.project_dir, targets2route(targets))
+        mm.write_targets(info.project_dir, get_writeble_targets(targets))
         start_height = scene.start_height
 
         route_idx_root = Route()

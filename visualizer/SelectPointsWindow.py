@@ -5,6 +5,7 @@ import open3d as o3d
 from structures.destination_list import Targets
 from structures.destination_list import Transfer
 from structures.destination_list import exists_idx
+from structures.destination_list import end
 import utils.voxel_raycast as vr
 from utils.grids.occupancy_grid import qidx2pos
 from utils.grids.occupancy_grid import qpos2idx
@@ -67,7 +68,8 @@ class PointsSelectorApp:
         self._widget3d.set_on_mouse(self._on_mouse_widget3d)
         self._widget3d.set_on_key(self._on_keyboard_widget3d)
         self.targets = targets
-        self._last_target = self.targets
+        self._spawn_targets_geometry()
+        self._last_target = end(targets)
         self._selected_target = None
         self._transfer_type = Transfer.VISIT
         self.start_height = 0
@@ -77,6 +79,22 @@ class PointsSelectorApp:
         self._shape = (self._bounding_box.get_extent() /
             self._vs).astype('int32')
     
+    def _spawn_targets_geometry(self):
+        tgt = self.targets
+        if tgt is not None:
+            line_mat = rendering.MaterialRecord()
+            marker_mat = rendering.MaterialRecord()
+            line_mat.shader = "unlitLine"
+            line_mat.line_width = 5
+            marker_mat.shader = "defaultLit"
+            self._widget3d.scene.add_geometry(tgt.name, tgt.mark, marker_mat)
+            while tgt.target is not None:
+                self._widget3d.scene.add_geometry(tgt.target.name, tgt.target.mark, marker_mat)
+                line = create_line(tgt.mark.get_center(), tgt.target.mark.get_center(),
+                    MarkerColors.get_color(tgt.target.transfer))
+                self._widget3d.scene.add_geometry(tgt.target.name + "_line", line, line_mat)
+                tgt = tgt.target
+
     def _idx_in_bounds(self, idx, min, max):
         in_bounds = False
         if (idx[0] >= min[0]) and (idx[1] >= min[1]) and (idx[2] >= min[2]) and (
@@ -137,10 +155,13 @@ class PointsSelectorApp:
         gui.Application.instance.quit()
     
     def _move_marker(self, target, shift):
-        idx = tuple(target.idx)
-        self._grid_with_markers[idx] -= 1
-        target.move(shift)
-        self._grid_with_markers[tuple(target.idx)] += 1
+        pos = target.mark.get_center() + shift
+        new_idx = qpos2idx(pos)
+        if self._idx_in_bounds(new_idx, (0, 0, 0), self._shape):
+            self._grid_with_markers[tuple(target.idx)] -= 1
+            target.mark.translate(pos, False)
+            target.idx = new_idx
+            self._grid_with_markers[tuple(target.idx)] += 1
     
     def _update_line(self, target, material):
         origin = target.origin
@@ -151,7 +172,6 @@ class PointsSelectorApp:
                            MarkerColors.get_color(target.transfer))
         self._widget3d.scene.add_geometry(name, line, material)
 
-    
     def _update_marker_lines(self, target):
         mat = rendering.MaterialRecord()
         mat.shader = "unlitLine"
@@ -170,7 +190,7 @@ class PointsSelectorApp:
                 if event.key == gui.KeyName.ENTER:
                     self._selected_target = None
                     if selected.transfer == Transfer.START:
-                        transfer = Transfer.START
+                        selected.transfer = Transfer.START
                         if selected.target is None:
                             selected.add(Targets(
                                 create_mark(
@@ -189,13 +209,12 @@ class PointsSelectorApp:
                         self._selected_target = takeoff_marker
                     else:
                         if selected.transfer == Transfer.TAKEOFF:
-                            transfer = Transfer.TAKEOFF
+                            selected.transfer = Transfer.TAKEOFF
                         else:
-                            transfer = self._transfer_type
+                            selected.transfer = self._transfer_type
                         self._update_marker_lines(selected) 
 
-                    selected.mark.paint_uniform_color(MarkerColors.get_color(transfer))
-                    selected.transfer = transfer
+                    selected.mark.paint_uniform_color(MarkerColors.get_color(selected.transfer))
                     self._info.text = "Adding new target"
                 else:
                     mat.shader = "defaultLit"
@@ -221,7 +240,7 @@ class PointsSelectorApp:
                     self._info.text = "Height: {:.2f}".format(height)
                 
                 self._window.set_needs_layout()
-                if self._widget3d.scene.has_geometry(name): self._widget3d.scene.remove_geometry(name)
+                self._widget3d.scene.remove_geometry(name)
                 self._widget3d.scene.add_geometry(name, geometry, mat)
                 return gui.Widget.EventCallbackResult.HANDLED
             else:

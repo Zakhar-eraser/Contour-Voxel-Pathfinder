@@ -34,6 +34,36 @@ class Targets:
         self.target.origin = self
         return self.target
 
-    def move(self, shift):
-        self.mark.translate(shift)
-        self.idx = qpos2idx(self.mark.get_center())
+class WritableTargets:
+    """Targets class for pickle"""
+
+    def __init__(self):
+        self.pos = None
+        self.name = None
+        self.id = None
+        self.idx = None
+        self.transfer = None
+        self.target = None
+        self.origin = None
+
+def get_writeble_targets(targets):
+    root = WritableTargets()
+    wtarget = root
+    while targets is not None:
+        wtarget.pos = targets.mark.get_center()
+        wtarget.idx = targets.idx
+        wtarget.name = targets.name
+        wtarget.id = targets.id
+        wtarget.transfer = targets.transfer
+        if targets.target is not None:
+            wtarget.target = WritableTargets()
+            wtarget.target.origin = wtarget
+        wtarget = wtarget.target
+        targets = targets.target
+    return root
+
+def end(target):
+    if target is not None:
+        while target.target is not None:
+            target = target.target
+    return target

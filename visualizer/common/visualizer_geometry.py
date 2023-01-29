@@ -9,6 +9,7 @@ class MarkerColors:
     START = [0, 1, 0]
     OBSERVE = [0, 0, 1]
     SELECTED = [0.62, 0.17, 0.41]
+    TAKEOFF = [0.9, 0.5, 0.1]
 
     def get_color(transfer_type):
         if transfer_type == Transfer.VISIT:
@@ -17,6 +18,8 @@ class MarkerColors:
             color = MarkerColors.OBSERVE
         elif transfer_type == Transfer.START:
             color = MarkerColors.START
+        elif transfer_type == Transfer.TAKEOFF:
+            color = MarkerColors.TAKEOFF
         else:
             color = [0, 0, 0]
         return color

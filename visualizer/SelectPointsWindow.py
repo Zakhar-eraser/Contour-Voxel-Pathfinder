@@ -138,17 +138,17 @@ class PointsSelectorApp:
     
     def _move_marker(self, target, shift):
         idx = tuple(target.idx)
-        self._grid_with_markers[idx] = self._grid[idx]
+        self._grid_with_markers[idx] -= 1
         target.move(shift)
-        self._grid_with_markers[tuple(target.idx)]
+        self._grid_with_markers[tuple(target.idx)] += 1
     
     def _update_line(self, target, material):
         origin = target.origin
-        name = target.name
+        name = target.name + "_line"
         self._widget3d.scene.remove_geometry(name)
         line = create_line(origin.mark.get_center(),
                            target.mark.get_center(),
-                           target.transfer)
+                           MarkerColors.get_color(target.transfer))
         self._widget3d.scene.add_geometry(name, line, material)
 
     
@@ -166,32 +166,39 @@ class PointsSelectorApp:
                 mat = rendering.MaterialRecord()
                 mat.shader = "defaultLit"
                 name = selected.name
+                geometry = selected.mark
                 if event.key == gui.KeyName.ENTER:
                     self._selected_target = None
-                    self._widget3d.scene.remove_geometry(name)
                     if selected.transfer == Transfer.START:
                         transfer = Transfer.START
-                        selected.add(Targets(
-                            create_mark(
-                                selected.mark.get_center() + (0, 0, self._vs),
-                                self._vs / 2 + 0.1, MarkerColors.get_color(Transfer.VISIT)),
-                                "mark_1", 1), Transfer.VISIT)
+                        if selected.target is None:
+                            selected.add(Targets(
+                                create_mark(
+                                    selected.mark.get_center() + (0, 0, self._vs / 2),
+                                    self._vs / 2 + 0.1, MarkerColors.SELECTED),
+                                    "mark_1", 1), Transfer.TAKEOFF)
+                        else:
+                            self._widget3d.scene.remove_geometry(selected.target.name)
+                            self._widget3d.scene.remove_geometry(selected.target.name + "_line")
+                            selected.target.mark.translate(selected.mark.get_center() + (0, 0, self._vs / 2), False)
+                            selected.target.mark.paint_uniform_color(MarkerColors.SELECTED)
                         takeoff_marker = selected.target
-                        self._selected_target = takeoff_marker
+                        self._grid_with_markers[tuple(takeoff_marker.idx)] += 1
                         self._widget3d.scene.add_geometry(takeoff_marker.name, takeoff_marker.mark, mat)
+                        self._last_target = takeoff_marker
+                        self._selected_target = takeoff_marker
                     else:
-                        transfer = selected.transfer
-                        self._update_marker_lines(selected, mat) 
+                        if selected.transfer == Transfer.TAKEOFF:
+                            transfer = Transfer.TAKEOFF
+                        else:
+                            transfer = self._transfer_type
+                        self._update_marker_lines(selected) 
 
-                    transfer = self._transfer_type
                     selected.mark.paint_uniform_color(MarkerColors.get_color(transfer))
                     selected.transfer = transfer
-                    geometry = selected.mark
                     self._info.text = "Adding new target"
                 else:
                     mat.shader = "defaultLit"
-                    geometry = self._selected_target.mark
-                    name = self._selected_target.name
                     if event.key == gui.KeyName.W:
                         self._move_marker(self._selected_target, (0, 0, self._vs))
                     elif event.key == gui.KeyName.S:
@@ -212,15 +219,16 @@ class PointsSelectorApp:
                     else:
                         height = geometry.get_center()[2] - self.start_height
                     self._info.text = "Height: {:.2f}".format(height)
-                    self._widget3d.scene.remove_geometry(name)
                 
                 self._window.set_needs_layout()
+                if self._widget3d.scene.has_geometry(name): self._widget3d.scene.remove_geometry(name)
                 self._widget3d.scene.add_geometry(name, geometry, mat)
                 return gui.Widget.EventCallbackResult.HANDLED
             else:
                 if event.key == gui.BACKSPACE and self._last_target is not None:
                     self._widget3d.scene.remove_geometry(self._last_target.name + "_line")
                     self._widget3d.scene.remove_geometry(self._last_target.name)
+                    self._grid_with_markers[tuple(self._last_target.idx)] -= 1
                     self._last_target = self._last_target.origin
                     if self._last_target is not None:
                         self._last_target.target = None
@@ -246,7 +254,7 @@ class PointsSelectorApp:
     def _on_mouse_widget3d(self, event):
         if event.type == gui.MouseEvent.Type.BUTTON_DOWN and self._selected_target is None:
             if event.is_modifier_down(gui.KeyModifier.CTRL):
-                target_vox = self._raycast(event, self._grid)
+                target_vox = self._raycast(event, self._grid_with_markers)
                 if len(target_vox):
                     world = qidx2pos(target_vox[0])
 
@@ -269,7 +277,7 @@ class PointsSelectorApp:
                     self._info.text = "Height: {:.2f}".format(height)
                     self._window.set_needs_layout()
 
-                    self._grid_with_markers[tuple(self._last_target.idx)] = 1
+                    self._grid_with_markers[tuple(self._last_target.idx)] += 1
                     self._widget3d.scene.add_geometry(name, mark, mat)
 
                     self._selected_target = self._last_target

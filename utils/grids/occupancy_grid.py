@@ -4,9 +4,11 @@ mb = np.array([0, 0, 0])
 vs = 1
 
 def set_static_voxel_size(voxel_size):
+    global vs
     vs = voxel_size
 
 def set_static_min_bound(min_bound):
+    global mb
     mb = min_bound
 
 def pos2idx(min_bound, pos, voxel_size):

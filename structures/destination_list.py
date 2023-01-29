@@ -7,6 +7,7 @@ class Transfer(Enum):
     OBSERVE = 0
     VISIT = 1
     START = 2
+    TAKEOFF = 3
 
 def exists_idx(target, idx):
     exists = False

@@ -39,16 +39,15 @@ def create_line(start, end, color):
     geometry.colors = o3d.utility.Vector3dVector([color])
     return geometry
 
-def make_route_geometry(route, line_width, marker_size):
+def make_route_lines(route, line_width, marker_size):
     line_material = o3d.visualization.rendering.MaterialRecord()
     line_material.shader = "unlitLine"
     line_material.line_width = line_width
     marker_material = o3d.visualization.rendering.MaterialRecord()
     marker_material.shader = "defaultLit"
     line_sets = []
-    spheres = []
 
-    while route is not None:
+    while route.next_point is not None:
         visit_lines = np.arange(len(route.visit_points) + 1)[:, np.newaxis]
         visit_lines = np.concatenate((visit_lines, visit_lines + 1), axis=1)
         visit_colors = [[1, 0, 0] for _ in range(len(visit_lines))]
@@ -58,21 +57,20 @@ def make_route_geometry(route, line_width, marker_size):
             lines=o3d.utility.Vector2iVector(visit_lines))
         visit_line_set.colors = o3d.utility.Vector3dVector(visit_colors)
         observe_len = len(route.observe_points)
-        observe_lines = np.arange(observe_len)[:, np.newaxis]
-        observe_lines = np.concatenate((observe_lines, np.full(observe_len, observe_len)), axis=1)
-        observe_colors = [[0, 0, 1] for _ in range(len(observe_lines))]
-        observe_line_set = o3d.geometry.LineSet(
+        line_sets.append(visit_line_set)
+        if observe_len:
+            observe_lines = np.arange(observe_len)[:, np.newaxis]
+            observe_lines = np.concatenate((observe_lines, np.full((observe_len, 1), observe_len)), axis=1)
+            observe_colors = [[0, 0, 1] for _ in range(len(observe_lines))]
+            observe_line_set = o3d.geometry.LineSet(
             points=o3d.utility.Vector3dVector(route.observe_points + [route.next_point.point]),
             lines=o3d.utility.Vector2iVector(observe_lines))
-        observe_line_set.colors = o3d.utility.Vector3dVector(observe_colors)
-        line_sets += [visit_line_set, observe_line_set]
-        spheres.append(create_mark(route.point, marker_size, [1, 0, 0]))
-        for mark in route.observe_points:
-            spheres.append(create_mark(mark, marker_size, [0, 0, 1]))
+            observe_line_set.colors = o3d.utility.Vector3dVector(observe_colors)
+            line_sets.append(observe_line_set)
         
         route = route.next_point
 
-    return [[line_sets, line_material], [spheres, marker_material]]
+    return [line_sets, line_material]
     
 def get_lines_from_targets(targets, line_width):
     line_material = o3d.visualization.rendering.MaterialRecord()

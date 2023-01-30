@@ -46,6 +46,13 @@ class WritableTargets:
         self.target = None
         self.origin = None
 
+def get_marks(targets):
+    marks = []
+    while targets is not None:
+        marks.append(targets.mark)
+        targets = targets.target
+    return marks
+
 def get_writeble_targets(targets):
     root = WritableTargets()
     wtarget = root

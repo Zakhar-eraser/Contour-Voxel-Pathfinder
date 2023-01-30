@@ -127,14 +127,14 @@ def write_waypoints(path, name, route):
     last = route[len(route) - 1]
     first = route[0]
     if gps_ref_use:
-        first_latlon = utm.to_latlon(last[0], last[1], 37, 'N')
-        last_latlon = utm.to_latlon(first[0], first[1], 37, 'N')
+        first_latlon = utm.to_latlon(first[0], first[1], 37, 'N')
+        last_latlon = utm.to_latlon(last[0], last[1], 37, 'N')
     else:
-        first_latlon = (last[0], last[1])
-        last_latlon = (first[0], first[1])
-    file.write(f"1\t0\t3\t22\t0\t0\t0\t0\t{first_latlon[0]}\t{first_latlon[1]}\t{last[2]}\t1\n")
+        first_latlon = (first[0], first[1])
+        last_latlon = (last[0], last[1])
+    file.write(f"1\t0\t3\t22\t0\t0\t0\t0\t{first_latlon[0]}\t{first_latlon[1]}\t{first[2]}\t1\n")
     counter = 2
-    for i in range(len(route) - 2, 0, -1):
+    for i in range(1, len(route) - 1):
         pos = route[i]
         if gps_ref_use:
             latlon = utm.to_latlon(pos[0], pos[1], 37, 'N')
@@ -142,5 +142,5 @@ def write_waypoints(path, name, route):
             latlon =(pos[0], pos[1])
         file.write(f"{counter}\t0\t3\t16\t0\t0\t0\t0\t{latlon[0]}\t{latlon[1]}\t{pos[2]}\t1\n")
         counter += 1
-    file.write(f"{counter}\t0\t3\t21\t0\t0\t0\t0\t{last_latlon[0]}\t{last_latlon[1]}\t{first[2]}\t1\n")
+    file.write(f"{counter}\t0\t3\t21\t0\t0\t0\t0\t{last_latlon[0]}\t{last_latlon[1]}\t{last[2]}\t1\n")
     file.close()

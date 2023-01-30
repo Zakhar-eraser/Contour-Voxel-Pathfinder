@@ -73,6 +73,7 @@ class PointsSelectorApp:
         self._selected_target = None
         self._transfer_type = Transfer.VISIT
         self.start_height = 0
+        if targets is not None: self.start_height = targets.mark.get_center()[2] 
 
         self._vs = vx.voxel_size
         self._bounding_box = vx.get_axis_aligned_bounding_box()
@@ -82,6 +83,7 @@ class PointsSelectorApp:
     def _spawn_targets_geometry(self):
         tgt = self.targets
         if tgt is not None:
+            self._grid_with_markers[tuple(tgt.idx)] += 1
             line_mat = rendering.MaterialRecord()
             marker_mat = rendering.MaterialRecord()
             line_mat.shader = "unlitLine"
@@ -89,6 +91,7 @@ class PointsSelectorApp:
             marker_mat.shader = "defaultLit"
             self._widget3d.scene.add_geometry(tgt.name, tgt.mark, marker_mat)
             while tgt.target is not None:
+                self._grid_with_markers[tuple(tgt.target.idx)] += 1
                 self._widget3d.scene.add_geometry(tgt.target.name, tgt.target.mark, marker_mat)
                 line = create_line(tgt.mark.get_center(), tgt.target.mark.get_center(),
                     MarkerColors.get_color(tgt.target.transfer))

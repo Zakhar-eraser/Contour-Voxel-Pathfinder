@@ -7,6 +7,7 @@ class Route:
     
     def __init__(self):
         self.next_point = None
+        self.prev_point = None
         self.point = None
         self.visit_points = []
         self.observe_points = []

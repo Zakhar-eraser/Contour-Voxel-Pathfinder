@@ -13,7 +13,6 @@ from utils.grids.occupancy_grid import qpos2idx
 from utils.grids.occupancy_grid import set_static_min_bound
 from utils.grids.occupancy_grid import set_static_voxel_size
 from structures.route import Route
-from structures.route import route_idx2pos
 from structures.route import route2array
 from visualizer.common.visualizer_geometry import get_targets
 
@@ -26,16 +25,6 @@ def graph2list(graph, end):
     route.append(cur)
     route.reverse()
     return route
-
-#def optimize(route_idx, min_hor_idx_cnt):
-#    route_idx_opt = []
-#    prev_line_idx = []
-#    cur_line_idx = []
-#    mode = 1
-#    for _ in range(len(route_idx)):
-#        if mode == 0:
-#            
-#            if route_idx[]
 
 def main():
     mm.init_project_structure()

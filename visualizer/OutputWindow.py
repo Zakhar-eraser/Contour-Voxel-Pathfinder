@@ -1,8 +1,10 @@
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 from structures.route import route_idx2pos
+from structures.route import Route
 from visualizer.common.visualizer_geometry import make_route_lines
 from structures.destination_list import get_marks
+from utils.voxel_raycast import raycast
 
 class OutputWindow:
 
@@ -62,6 +64,10 @@ class OutputWindow:
             geom_count += 1
             self._widget3d.scene.add_geometry(prefix + str(geom_count), geom, glist[1])
         return geom_count
+    
+    def _remove_lines(self):
+        for i in range(1, self._lines_count + 1):
+            self._widget3d.scene.remove_geometry("line_" + str(i))
 
     def _on_layout(self, layout_context):
         r = self._window.content_rect
@@ -74,8 +80,41 @@ class OutputWindow:
         self._settings_panel.frame = gui.Rect(r.get_right() - width, r.y, width,
                                               height)
     
-    def _on_opt_clicked(self):
-        pass
-
     def _on_done_clicked(self):
         gui.Application.instance.quit()
+    
+    def optimize_route(self):
+        optimized_root = None
+        if self.route_idx is not None:
+            route = self.route_idx
+            optimized_root = Route()
+            optimized_root.point = route.point
+            optimized = optimized_root
+            while route.next_point is not None:
+                optimized.next_point = Route()
+                optimized.next_point.prev_point = optimized
+                optimized.next_point.point = route.next_point.point
+                optimized.observe_points = route.observe_points
+                cands = [route.point] + route.visit_points + [route.next_point.point]
+                cands_len = len(cands)
+                i = 0
+                while i < cands_len - 1:
+                    j = cands_len - 1
+                    while j > 0:
+                        if not len(raycast(cands[i], cands[j], self._grid)):
+                            optimized.visit_points.append(cands[i])
+                            i = j
+                            break
+                        j -= 1
+                    i += 1
+                optimized.visit_points.pop(0)
+
+                optimized = optimized.next_point
+                route = route.next_point
+        return optimized_root
+
+    def _on_opt_clicked(self):
+        self._remove_lines()
+        self.route_idx = self.optimize_route()
+        self.route = route_idx2pos(self.route_idx)
+        self._lines_count = self._spawn_geometry(make_route_lines(self.route, 5, self._vs / 2 + 0.1), "line_")

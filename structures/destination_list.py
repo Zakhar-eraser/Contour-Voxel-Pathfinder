@@ -19,7 +19,7 @@ def exists_idx(target, idx):
 class Targets:
     """Linked List with position and transfer type properties"""
 
-    def __init__(self, mark, name, id):
+    def __init__(self, mark, name):
         self.mark = mark
         self.name = name
         self.id = id

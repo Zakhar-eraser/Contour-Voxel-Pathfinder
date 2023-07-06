@@ -16,7 +16,16 @@ from visualizer.common.visualizer_geometry import create_mark
 from visualizer.common.visualizer_geometry import create_line
 from copy import deepcopy
 
+class Materials:
+    MARKER = 1
+    LINE = 2
+    VOXEL = 3
+
 class PointsSelectorApp:
+    _START_MARKER = 'start'
+    _TAKEOFF_MARKER_NAME = 'mark_1'
+    _MARKER_PREFIX = 'mark_'
+    _LINE_SUFFIX = '_line'
 
     def __init__(self, voxel_grid, occupancy_grid, targets = None):
         vx = voxel_grid
@@ -55,11 +64,9 @@ class PointsSelectorApp:
         self._widget3d.scene = rendering.Open3DScene(self._window.renderer)
         self._widget3d.scene.set_background((0.8, 0.6, 0.6, 1))
 
-        mat = rendering.MaterialRecord()
-        mat.shader = "defaultUnlit"
+        self.materials = self._initialize_materials()
 
-        mat.point_size = 6 * self._window.scaling
-        self._widget3d.scene.add_geometry("Point Cloud", vx, mat)
+        self._widget3d.scene.add_geometry("Voxel map", vx, self.materials[Materials.VOXEL])
 
         bounds = self._widget3d.scene.bounding_box
         center = bounds.get_center()
@@ -68,6 +75,7 @@ class PointsSelectorApp:
         self._widget3d.set_on_mouse(self._on_mouse_widget3d)
         self._widget3d.set_on_key(self._on_keyboard_widget3d)
         self.targets = targets
+        self._last_id = 0
         self._spawn_targets_geometry()
         self._last_target = end(targets)
         self._selected_target = None
@@ -80,22 +88,41 @@ class PointsSelectorApp:
         self._shape = (self._bounding_box.get_extent() /
             self._vs).astype('int32')
     
+    def _initialize_materials(self) -> dict:
+        line_mat = rendering.MaterialRecord()
+        line_mat.shader = "unlitLine"
+        line_mat.line_width = 5
+
+        marker_mat = rendering.MaterialRecord()
+        marker_mat.shader = "defaultLit"
+
+        voxel_mat = rendering.MaterialRecord()
+        voxel_mat.shader = "defaultUnlit"
+        voxel_mat.point_size = 6 * self._window.scaling
+
+        return {Materials.MARKER: marker_mat,
+                Materials.LINE: line_mat,
+                Materials.VOXEL: voxel_mat}
+    
     def _spawn_targets_geometry(self):
         tgt = self.targets
         if tgt is not None:
             self._grid_with_markers[tuple(tgt.idx)] += 1
-            line_mat = rendering.MaterialRecord()
-            marker_mat = rendering.MaterialRecord()
-            line_mat.shader = "unlitLine"
-            line_mat.line_width = 5
-            marker_mat.shader = "defaultLit"
             self._widget3d.scene.add_geometry(tgt.name, tgt.mark, marker_mat)
             while tgt.target is not None:
                 self._grid_with_markers[tuple(tgt.target.idx)] += 1
+<<<<<<< HEAD
                 self._widget3d.scene.add_geometry(tgt.target.name, tgt.target.mark, marker_mat)
                 line = create_line(tgt.mark.get_center(), tgt.target.mark.get_center(),
+=======
+                self._last_id += 1
+                name = PointsSelectorApp._MARKER_PREFIX + str(self._last_id)
+                self._widget3d.scene.add_geometry(name, tgt.target.mark, marker_mat)
+                line = create_line(tgt.pos, tgt.target.pos,
+>>>>>>> 28f38d0 (targets id allocation fix init. development freezed)
                     MarkerColors.get_color(tgt.target.transfer))
-                self._widget3d.scene.add_geometry(tgt.target.name + "_line", line, line_mat)
+                self._widget3d.scene.add_geometry(name + PointsSelectorApp._LINE_SUFFIX,
+                                                  line, line_mat)
                 tgt = tgt.target
 
     def _idx_in_bounds(self, idx, min, max):
@@ -166,7 +193,11 @@ class PointsSelectorApp:
             target.idx = new_idx
             self._grid_with_markers[tuple(target.idx)] += 1
     
-    def _update_line(self, target, material):
+    def _destroy_line(self, target: Targets) -> None:
+        if target.origin is not None:
+            self._widget3d.scene.remove_geometry(target.name + PointsSelectorApp._LINE_SUFFIX)
+    
+    def _spawn_line(self, target: Targets) -> None:
         origin = target.origin
         name = target.name + "_line"
         self._widget3d.scene.remove_geometry(name)
@@ -276,10 +307,11 @@ class PointsSelectorApp:
     def _on_mouse_widget3d(self, event):
         if event.type == gui.MouseEvent.Type.BUTTON_DOWN and self._selected_target is None:
             if event.is_modifier_down(gui.KeyModifier.CTRL):
-                target_vox = self._raycast(event, self._grid_with_markers)
+                if self._last_target is not None and self._last_target.origin is None:
+                    target_vox = [self._last_target.idx + (0, 0, 1)]
+                else: target_vox = self._raycast(event, self._grid_with_markers)
                 if len(target_vox):
                     world = qidx2pos(target_vox[0])
-
                     mark = create_mark(world, self._vs / 2 + 0.1, MarkerColors.SELECTED)
                     mat = rendering.MaterialRecord()
                     mat.shader = "defaultLit"
@@ -287,8 +319,8 @@ class PointsSelectorApp:
                     if self.targets is None:
                         mark.translate((0, 0, self._vs / 2 + 0.001))
                         self.start_height = height = mark.get_center()[2]
-                        name = "start"
-                        self._last_target = self.targets = Targets(mark, name, 0)
+                        name = PointsSelectorApp._START_MARKER
+                        self._last_target = self.targets = Targets(mark, name)
                         self._last_target.transfer = Transfer.START
                     else:
                         height = world[2] - self.start_height
